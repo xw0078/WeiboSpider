@@ -1,2 +1,11 @@
 ghostdriver.log
 captcha.png
+.gitignore
+*.pyc
+*.txt
+bfg-1.13.0.jar
+settings.py
+!account_example.txt
+!seeds_example.txt
+!requirements.txt
+!setting_example.py
