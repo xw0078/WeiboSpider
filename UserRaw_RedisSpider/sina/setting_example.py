@@ -67,3 +67,6 @@ RETRY_TIMES = 15
 
 # Crawl tweets start from date
 TIME_START = '2020-02-21 00:00'
+
+#proxy base url
+PROXY_BASEURL = ""
