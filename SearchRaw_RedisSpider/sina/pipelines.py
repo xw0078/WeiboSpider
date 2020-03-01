@@ -9,7 +9,7 @@ class MongoDBPipeline(object):
     def __init__(self):
         client = pymongo.MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
         db = client[DB_NAME]
-        self.Search = db["SearchPageRaw"]
+        self.Search = db["SearchTimelinePageRaw"]
 
     def process_item(self, item, spider):
         """ 判断item的类型，并作相应的处理，再入数据库 """
