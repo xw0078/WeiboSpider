@@ -38,6 +38,7 @@ for uid in start_uids:
     r.lpush('weibo_user_raw_spider:start_urls', start_url)
 
 for url in start_urls:
+    url = url.replace(base_url,PROXY_BASEURL)
     r.lpush('weibo_user_raw_spider:start_urls', url)
 
 print('Redis initialized')
