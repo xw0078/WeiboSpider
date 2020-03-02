@@ -63,9 +63,10 @@ class WeiboSpider(RedisSpider):
         if uid_from_url:
             information_item['_id'] = re.findall('(\d+)/info', response.url)[0] # get user id
         else:
-            information_item['_id'] = "NA"
+            infopage_url = tree_node.xpath('//div[@class="u"]//a[contains(text(),"资料")]/@href')[-1]
+            information_item['_id'] = infopage_url.split("/")[-2]
 
-
+        
         information_item['page_url'] = response.url.replace(self.base_url,self.weibo_baseurl)
         information_item['page_raw'] = selector.extract() # get raw page content
         information_item['crawl_time_utc'] = dt.utcnow()
