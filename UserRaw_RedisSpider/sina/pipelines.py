@@ -30,5 +30,5 @@ class MongoDBPipeline(object):
         try:
             collection.insert(dict(item))
         except DuplicateKeyError:
-            print("[ERROR][Function] insert_item")
+            #print("[ERROR][Function] insert_item")
             pass

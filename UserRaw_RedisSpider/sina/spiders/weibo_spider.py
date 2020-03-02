@@ -62,25 +62,23 @@ class WeiboSpider(RedisSpider):
         uid_from_url = re.findall('(\d+)/info', response.url)
         if uid_from_url:
             information_item['_id'] = re.findall('(\d+)/info', response.url)[0] # get user id
+            information_item['page_url'] = response.url.replace(self.base_url,self.weibo_baseurl)
+            information_item['page_raw'] = selector.extract() # get raw page content
+            information_item['crawl_time_utc'] = dt.utcnow()
+            yield information_item
+            yield Request(url=self.base_url + '/{}/profile?page=1'.format(information_item['_id']),
+                    callback=self.parse_tweet, meta={'user_id': information_item['_id']},
+                    priority=1)
         else:
+            tree_node = etree.HTML(response.body)
             infopage_url = tree_node.xpath('//div[@class="u"]//a[contains(text(),"资料")]/@href')[-1]
             information_item['_id'] = infopage_url.split("/")[-2]
+            yield Request(url=self.base_url + '/{}/info'.format(information_item['_id']),
+                    callback=self.parse, meta={'user_id': information_item['_id']},
+                    priority=1)
+        
 
         
-        information_item['page_url'] = response.url.replace(self.base_url,self.weibo_baseurl)
-        information_item['page_raw'] = selector.extract() # get raw page content
-        information_item['crawl_time_utc'] = dt.utcnow()
-        yield information_item
-
-        # request tweets page
-        if uid_from_url:
-            yield Request(url=self.base_url + '/{}/profile?page=1'.format(information_item['_id']),
-                      callback=self.parse_tweet, meta={'user_id': information_item['_id']},
-                      priority=1)
-        else:
-            yield Request(url=response.url + '?page=1',callback=self.parse_tweet, meta={'user_id': information_item['_id']},
-                      priority=1)
-
         # 获取关注列表
         # if information_item['follows_num'] < 500: # if no more than 500 follows
         #     yield Request(url=self.base_url + '/{}/follow?page=1'.format(information_item['_id']),
