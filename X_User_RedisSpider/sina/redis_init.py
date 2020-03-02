@@ -9,8 +9,8 @@ from sina.settings import LOCAL_REDIS_HOST, LOCAL_REDIS_PORT
 
 r = redis.Redis(host=LOCAL_REDIS_HOST, port=LOCAL_REDIS_PORT)
 
-for key in r.scan_iter("weibo_user_spider*"):
-    r.delete(key)
+# for key in r.scan_iter("weibo_user_spider*"):
+#     r.delete(key)
 
 # get seeds from the seeds file
 file_path = os.getcwd() + '/sina/seeds.txt'

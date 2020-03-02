@@ -11,8 +11,8 @@ import urllib.parse
 r = redis.Redis(host=LOCAL_REDIS_HOST, port=LOCAL_REDIS_PORT)
 
 # delete existing keys
-for key in r.scan_iter("weibo_search_raw_spider*"):
-    r.delete(key)
+# for key in r.scan_iter("weibo_search_raw_spider*"):
+#     r.delete(key)
 
 # get seeds from the seeds file
 file_path = os.getcwd() + '/sina/seeds.txt'
