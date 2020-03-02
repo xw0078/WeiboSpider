@@ -16,15 +16,20 @@ import dateutil.parser
 from datetime import timezone
 
 
+readSource = "mongodb://127.0.0.1:27017/2020COVID19WEIBO.UserTimelineRaw_v2"
+
+
+
 def main_html_parser(iterator):
     client = MongoClient('mongodb://localhost:27017/')
-    db = client['SWtest']
-    collection = db["test2"]
-
+    db = client['2020COVID19WEIBO']
+    collection = db["Tweets_parsed_v2"]
+    
     for element in iterator:
-        tree_node = etree.HTML(element[3]) 
+        tree_node = etree.HTML(element[2]) 
         tweet_nodes = tree_node.xpath('//div[@class="c" and @id]')
         for tweet_node in tweet_nodes:
+            #print(element[3])
             tweet_item = tweet_node_parser(tweet_node,element[1])          
             try:
                 collection.update_one(
@@ -39,25 +44,25 @@ def main_html_parser(iterator):
                                 "user_id" : tweet_item["user_id"],
                                 "tool" : tweet_item["tool"],
                                 "multi_imgs_page_url" : tweet_item["multi_imgs_page_url"],
-                                "complete_img_ids" : tweet_item["complete_img_ids"],
+                                "img_truncated" : tweet_item["img_truncated"],
                                 "multi_img_ids" : tweet_item["multi_img_ids"],
                                 "video_url" : tweet_item["video_url"],
-                                "location_map_info" : tweet_item["location_map_info"],
-                                "retweet" : tweet_item["retweet"],
-                                "retweet_weibo_id" : tweet_item["retweet_weibo_id"],
-                                "retweet_user_name" : tweet_item["retweet_user_name"],
-                                "retweet_user_link" : tweet_item["retweet_user_link"],
-                                "truncated" : tweet_item["truncated"],
+                                "location_url" : tweet_item["location_url"],
+                                "location_name" : tweet_item["location_name"],
+                                "repost" : tweet_item["repost"],
+                                "repost_weibo_id" : tweet_item["repost_weibo_id"],
+                                "repost_user_name" : tweet_item["repost_user_name"],
+                                "repost_user_url" : tweet_item["repost_user_url"],
+                                "content_truncated" : tweet_item["content_truncated"],
                                 "content" : tweet_item["content"],
-                                "content_links" : tweet_item["content_links"],
-                                "mention_user_links" : tweet_item["mention_user_links"],
-                                "hashtag_names" : tweet_item["hashtag_names"],
-                                "hashtag_names" : tweet_item["hashtag_names"],
+                                "embeded_urls" : tweet_item["embeded_urls"],
+                                "mention_users" : tweet_item["mention_users"],
+                                "hashtags" : tweet_item["hashtags"],
                                 "crawl_time_utc" : tweet_item["crawl_time_utc"]
                             },
                             "$push": {
-                                "tweet_dynamic_history": tweet_item['tweet_dynamic_history'],
-                                "retweet_dynamic_history": tweet_item['retweet_dynamic_history']
+                                "status_history": tweet_item['status_history'],
+                                "repost_dynamic_history": tweet_item['repost_dynamic_history']
                             }
                         },
                         upsert=True
@@ -66,7 +71,7 @@ def main_html_parser(iterator):
                 pass
             yield "Done"
 
-def get_tweet_id(self,tweet_url):
+def get_tweet_id(tweet_url):
     if tweet_url.startswith("https://weibo.cn/comment/"):
         return tweet_url.split("/")[-1].split("?")[0]
     else:
@@ -101,6 +106,8 @@ def time_to_utc(timeString):
 
 def tweet_node_parser(tweet_node,crawl_time_utc):
     tweet_item = {}
+    base_url = "https://weibo.cn"
+
     tweet_item['crawl_time_utc'] = crawl_time_utc
     # get tweet id, user id, weibo url
     tweet_repost_url = tweet_node.xpath('.//a[contains(text(),"转发[")]/@href')[0]
@@ -137,11 +144,11 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
     if multi_img_link:
         tweet_item['multi_imgs_page_url'] = str(multi_img_link[-1])
         tweet_item['multi_img_ids'] = "TBD"
-        tweet_item['complete_img_ids'] = False
+        tweet_item['img_truncated'] = False
     else:
         tweet_item['multi_imgs_page_url'] = ""
         tweet_item['multi_img_ids'] = ""
-        tweet_item['complete_img_ids'] = True
+        tweet_item['img_truncated'] = True
 
     # first img link
     first_img = tweet_node.xpath('.//img[@alt="图片"]/@src')
@@ -159,30 +166,44 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
     map_node = tweet_node.xpath('.//a[contains(text(),"显示地图")]')
     if map_node:
         map_node = map_node[0]
-        map_node_url = map_node.xpath('./@href')[0]
-        map_info = re.search(r'xy=(.*?)&', map_node_url).group(1)
-        tweet_item['location_map_info'] = str(map_info)
+        tweet_item['location_url'] = map_node.xpath('./@href')[0]
+        map_info = re.search(r'xy=(.*?)&', tweet_item['location_url'])
+        if map_info:
+            map_info = map_info.group(1)
+            tweet_item['location_name'] = str(map_info)
+        else:
+            tweet_item['location_name'] = ""
     else:
-        tweet_item['location_map_info'] = ""
+        tweet_item['location_url'] = ""
+        tweet_item['location_name'] = ""
 
     # check repost information
     repost_node = tweet_node.xpath('.//a[contains(text(),"原文评论[")]/@href')
+    #deleted = tweet_node.xpath('.//span[contains(text(),"此微博已被作者删除")]/text()')
     if repost_node:
-        tweet_item['retweet'] = True
-        tweet_item['retweet_weibo_id'] = str(repost_node[0])
-        tweet_item['retweet_user_name'] = str(tweet_node.xpath('.//span[@class="cmt"]/a/text()')[-1])
-        tweet_item['retweet_user_link'] = str(tweet_node.xpath('.//span[@class="cmt"]/a/@href')[-1])
-        retweet_like_num = tweet_node.xpath('.//span[@class="cmt" and contains(text(),"赞[")]/text()')[-1]
-        retweet_like_num = int(re.search('\d+', retweet_like_num).group()) # dynamic
-        retweet_comment_num = tweet_node.xpath('.//a[contains(text(),"原文评论[")]/text()')[-1]
-        retweet_comment_num = int(re.search('\d+', retweet_comment_num).group()) # dynamic
-        retweet_repost_num = tweet_node.xpath('.//span[@class="cmt" and contains(text(),"原文转发[")]/text()')[-1]
-        retweet_repost_num = int(re.search('\d+', retweet_repost_num).group()) # dynamic
+        tweet_item['repost'] = True
+        tweet_item['repost_weibo_id'] = get_tweet_id(str(repost_node[0]))
+        retweet_user_name = tweet_node.xpath('.//span[@class="cmt"]/a/text()')
+        if retweet_user_name: # check if available
+            tweet_item['repost_user_name'] = str(tweet_node.xpath('.//span[@class="cmt"]/a/text()')[-1])
+            tweet_item['repost_user_url'] = str(tweet_node.xpath('.//span[@class="cmt"]/a/@href')[-1])
+            retweet_like_num = tweet_node.xpath('.//span[@class="cmt" and contains(text(),"赞[")]/text()')[-1]
+            retweet_like_num = int(re.search('\d+', retweet_like_num).group()) # dynamic
+            retweet_comment_num = tweet_node.xpath('.//a[contains(text(),"原文评论[")]/text()')[-1]
+            retweet_comment_num = int(re.search('\d+', retweet_comment_num).group()) # dynamic
+            retweet_repost_num = tweet_node.xpath('.//span[@class="cmt" and contains(text(),"原文转发[")]/text()')[-1]
+            retweet_repost_num = int(re.search('\d+', retweet_repost_num).group()) # dynamic
+        else:
+            tweet_item['repost_user_name'] = ""
+            tweet_item['repost_user_url'] = ""
+            retweet_like_num = -1
+            retweet_comment_num = -1
+            retweet_repost_num = -1
     else:
-        tweet_item['retweet'] = False
-        tweet_item['retweet_weibo_id'] = ""
-        tweet_item['retweet_user_name'] = ""
-        tweet_item['retweet_user_link'] = ""
+        tweet_item['repost'] = False
+        tweet_item['repost_weibo_id'] = ""
+        tweet_item['repost_user_name'] = ""
+        tweet_item['repost_user_url'] = ""
         retweet_like_num = -1
         retweet_comment_num = -1
         retweet_repost_num = -1
@@ -190,10 +211,10 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
     # get content and check if it is partial
     all_content_link = tweet_node.xpath('.//a[text()="全文" and contains(@href,"ckAll=1")]')
     if all_content_link:
-        tweet_item['truncated'] = True
-        tweet_item['full_tweet_link'] = self.base_url + all_content_link[0].xpath('./@href')[0]
+        tweet_item['content_truncated'] = True
+        tweet_item['full_tweet_url'] = base_url + all_content_link[0].xpath('./@href')[0]
     else:
-        tweet_item['truncated'] = False
+        tweet_item['content_truncated'] = False
 
     # get content, replace emoji picture to text if applicated
     
@@ -205,48 +226,57 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
 
 
     # get hashtags
-    hashtag_names = tweet_node.xpath('.//span[@class="ctt"]/a[contains(text(),"#")]/text()')
-    if hashtag_names:
-        tweet_item['hashtag_names'] = list(map(lambda x: str(x),hashtag_names))
-        tweet_item['hashtag_names'] = ",".join(tweet_item['hashtag_names'])
+    hashtags = tweet_node.xpath('.//span[@class="ctt"]/a[contains(text(),"#")]/text()')
+    if hashtags:
+        tweet_item['hashtags'] = list(map(lambda x: str(x),hashtags))
+        tweet_item['hashtags'] = ",".join(tweet_item['hashtags'])
     else:
-        tweet_item['hashtag_names'] = ""
+        tweet_item['hashtags'] = ""
 
     # get content links if exist
-    content_links = tweet_node.xpath('.//span[@class="ctt"]/a[not(contains(text(),"#")) and not(contains(text(),"全文")) and not(contains(text(),"@"))]/@href')
-    if content_links:
-        tweet_item['content_links'] = list(map(lambda x: str(x),content_links))
-        tweet_item['content_links'] = " ".join(tweet_item['content_links'])
+    embeded_urls = tweet_node.xpath('.//span[@class="ctt"]/a[not(contains(text(),"#")) and not(contains(text(),"全文")) and not(contains(text(),"@"))]/@href')
+    if embeded_urls:
+        tweet_item['embeded_urls'] = list(map(lambda x: str(x),embeded_urls))
+        tweet_item['embeded_urls'] = " ".join(tweet_item['embeded_urls'])
     else:
-        tweet_item['content_links'] = ""
+        tweet_item['embeded_urls'] = ""
     
     # get mentions
     mention_links = tweet_node.xpath('.//span[@class="ctt"]/a[(contains(text(),"@"))]/@href')
+    mention_names = tweet_node.xpath('.//span[@class="ctt"]/a[(contains(text(),"@"))]/text()')
+    tweet_item["mention_users"] = []
     if mention_links:
-        tweet_item['mention_user_links'] = list(map(lambda x: str(x),mention_links))
-        tweet_item['mention_user_links'] = " ".join(tweet_item['mention_user_links'])
-    else:
-        tweet_item['mention_user_links'] = ""
+        mention_user_urls = list(map(lambda x: str(x),mention_links))
+        mention_user_names = list(map(lambda x: str(x),mention_names))
+        for url,name in zip(mention_user_urls,mention_user_names):
+            mention_user_pair = {
+                'mention_user_name': name,
+                'mention_user_url': url
+            }
+            tweet_item["mention_users"].append(mention_user_pair)
+
 
     # dynamic fields
-    tweet_item['tweet_dynamic_history'] = []
+    #tweet_item['tweet_dynamic_history'] = []
     tweet_dynamics = {
         "like_num": like_num,
         "comment_num": comment_num,
         "repost_num": repost_num,
         "crawl_time_utc": crawl_time_utc
     }
-    tweet_item['tweet_dynamic_history'].append(tweet_dynamics)
+    tweet_item['status_history'] = tweet_dynamics
 
-    tweet_item['retweet_dynamic_history'] = []
+    #tweet_item['retweet_dynamic_history'] = []
     if repost_node:
         retweet_dynamics = {
-            "retweet_like_num": retweet_like_num,
-            "retweet_comment_num": retweet_comment_num,
-            "retweet_repost_num": retweet_repost_num,
+            "repost_like_num": retweet_like_num,
+            "repost_comment_num": retweet_comment_num,
+            "repost_repost_num": retweet_repost_num,
             "crawl_time_utc": crawl_time_utc
         }
-        tweet_item['retweet_dynamic_history'].append(retweet_dynamics)
+        tweet_item['repost_dynamic_history'] = retweet_dynamics
+    else:
+        tweet_item['repost_dynamic_history'] = ""
 
     return tweet_item
 
@@ -269,7 +299,7 @@ class weiboPySparkMDBParser:
 
 
     def findPotentialUser(self):
-        df = self.spark.read.format("com.mongodb.spark.sql.DefaultSource").option("uri","mongodb://127.0.0.1:27017/Sina2.SearchPageRaw").load()
+        df = self.spark.read.format("com.mongodb.spark.sql.DefaultSource").option("uri",readSource).load()
         df.show(2)
         rdd = df.rdd
         transformed = rdd.mapPartitions(main_html_parser)
