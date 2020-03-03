@@ -8,7 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import sys
 
 sys.path.append(os.getcwd())
-from UserRaw_RedisSpider.sina.settings import LOCAL_MONGO_HOST, LOCAL_MONGO_PORT, DB_NAME
+from UserRaw_RedisSpider.sina.settings import LOCAL_MONGO_HOST, LOCAL_MONGO_PORT, DB_NAME, PROXY_BASEURL
 
 TEMPLATES_FOLDER = os.getcwd() + '/templates/'
 

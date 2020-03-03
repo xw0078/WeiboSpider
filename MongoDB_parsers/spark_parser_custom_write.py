@@ -49,10 +49,10 @@ def main_html_parser(iterator):
                                 "video_url" : tweet_item["video_url"],
                                 "location_url" : tweet_item["location_url"],
                                 "location_name" : tweet_item["location_name"],
-                                "repost" : tweet_item["repost"],
-                                "repost_weibo_id" : tweet_item["repost_weibo_id"],
-                                "repost_user_name" : tweet_item["repost_user_name"],
-                                "repost_user_url" : tweet_item["repost_user_url"],
+                                "is_repost" : tweet_item["is_repost"],
+                                "origin_status_id" : tweet_item["origin_status_id"],
+                                "origin_user_name" : tweet_item["origin_user_name"],
+                                "origin_user_url" : tweet_item["origin_user_url"],
                                 "content_truncated" : tweet_item["content_truncated"],
                                 "content" : tweet_item["content"],
                                 "embeded_urls" : tweet_item["embeded_urls"],
@@ -62,7 +62,7 @@ def main_html_parser(iterator):
                             },
                             "$push": {
                                 "status_history": tweet_item['status_history'],
-                                "repost_dynamic_history": tweet_item['repost_dynamic_history']
+                                "origin_status_history": tweet_item['origin_status_history']
                             }
                         },
                         upsert=True
@@ -181,12 +181,12 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
     repost_node = tweet_node.xpath('.//a[contains(text(),"原文评论[")]/@href')
     #deleted = tweet_node.xpath('.//span[contains(text(),"此微博已被作者删除")]/text()')
     if repost_node:
-        tweet_item['repost'] = True
-        tweet_item['repost_weibo_id'] = get_tweet_id(str(repost_node[0]))
+        tweet_item['is_repost'] = True
+        tweet_item['origin_status_id'] = get_tweet_id(str(repost_node[0]))
         retweet_user_name = tweet_node.xpath('.//span[@class="cmt"]/a/text()')
         if retweet_user_name: # check if available
-            tweet_item['repost_user_name'] = str(tweet_node.xpath('.//span[@class="cmt"]/a/text()')[-1])
-            tweet_item['repost_user_url'] = str(tweet_node.xpath('.//span[@class="cmt"]/a/@href')[-1])
+            tweet_item['origin_user_name'] = str(tweet_node.xpath('.//span[@class="cmt"]/a/text()')[-1])
+            tweet_item['origin_user_url'] = str(tweet_node.xpath('.//span[@class="cmt"]/a/@href')[-1])
             retweet_like_num = tweet_node.xpath('.//span[@class="cmt" and contains(text(),"赞[")]/text()')[-1]
             retweet_like_num = int(re.search('\d+', retweet_like_num).group()) # dynamic
             retweet_comment_num = tweet_node.xpath('.//a[contains(text(),"原文评论[")]/text()')[-1]
@@ -194,16 +194,16 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
             retweet_repost_num = tweet_node.xpath('.//span[@class="cmt" and contains(text(),"原文转发[")]/text()')[-1]
             retweet_repost_num = int(re.search('\d+', retweet_repost_num).group()) # dynamic
         else:
-            tweet_item['repost_user_name'] = ""
-            tweet_item['repost_user_url'] = ""
+            tweet_item['origin_user_name'] = ""
+            tweet_item['origin_user_url'] = ""
             retweet_like_num = -1
             retweet_comment_num = -1
             retweet_repost_num = -1
     else:
-        tweet_item['repost'] = False
-        tweet_item['repost_weibo_id'] = ""
-        tweet_item['repost_user_name'] = ""
-        tweet_item['repost_user_url'] = ""
+        tweet_item['is_repost'] = False
+        tweet_item['origin_status_id'] = ""
+        tweet_item['origin_user_name'] = ""
+        tweet_item['origin_user_url'] = ""
         retweet_like_num = -1
         retweet_comment_num = -1
         retweet_repost_num = -1
@@ -228,8 +228,7 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
     # get hashtags
     hashtags = tweet_node.xpath('.//span[@class="ctt"]/a[contains(text(),"#")]/text()')
     if hashtags:
-        tweet_item['hashtags'] = list(map(lambda x: str(x),hashtags))
-        tweet_item['hashtags'] = ",".join(tweet_item['hashtags'])
+        tweet_item['hashtags'] = list(map(lambda x: re.findall('(#.*?#)', str(x))[-1],hashtags))
     else:
         tweet_item['hashtags'] = ""
 
@@ -237,7 +236,6 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
     embeded_urls = tweet_node.xpath('.//span[@class="ctt"]/a[not(contains(text(),"#")) and not(contains(text(),"全文")) and not(contains(text(),"@"))]/@href')
     if embeded_urls:
         tweet_item['embeded_urls'] = list(map(lambda x: str(x),embeded_urls))
-        tweet_item['embeded_urls'] = " ".join(tweet_item['embeded_urls'])
     else:
         tweet_item['embeded_urls'] = ""
     
@@ -269,14 +267,14 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
     #tweet_item['retweet_dynamic_history'] = []
     if repost_node:
         retweet_dynamics = {
-            "repost_like_num": retweet_like_num,
-            "repost_comment_num": retweet_comment_num,
-            "repost_repost_num": retweet_repost_num,
+            "origin_status_like_num": retweet_like_num,
+            "origin_status_comment_num": retweet_comment_num,
+            "origin_status_repost_num": retweet_repost_num,
             "crawl_time_utc": crawl_time_utc
         }
-        tweet_item['repost_dynamic_history'] = retweet_dynamics
+        tweet_item['origin_status_history'] = retweet_dynamics
     else:
-        tweet_item['repost_dynamic_history'] = ""
+        tweet_item['origin_status_history'] = ""
 
     return tweet_item
 
