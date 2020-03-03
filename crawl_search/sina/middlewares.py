@@ -38,8 +38,17 @@ class RedirectMiddleware(object):
     def process_response(self, request, response, spider):
         http_code = response.status
         if http_code == 302 or http_code == 403:
-            self.account_collection.find_one_and_update({'_id': request.meta['account']['_id']},
-                                                        {'$set': {'status': 'error'}}, )
+            stop_timestamp = dt.utcnow()
+            self.account_collection.find_one_and_update(
+                {'_id': request.meta['account']['_id']},
+                {
+                    '$set': {
+                        'status': 'error',
+                        'fail_time': stop_timestamp
+                    }
+                }
+            )
+            spider.logger.error('小号%s被封了', request.meta['account']['_id'])
             return request
         elif http_code == 418:
             spider.logger.error('ip 被封了!!!请更换ip,或者停止程序...')
