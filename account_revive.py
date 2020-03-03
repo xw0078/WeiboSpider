@@ -12,7 +12,7 @@ import time
 from build_account import WeiboLogin
 
 myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-mydb = myclient["Sina2"]
+mydb = myclient[DB_NAME]
 mycol = mydb["account"]
 
 # find error account
