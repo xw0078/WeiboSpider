@@ -13,8 +13,8 @@ import time
 from datetime import datetime as dt
 
 class WeiboSpider(RedisSpider):
-    name = "weibo_search_raw_spider"
-    redis_key = "weibo_search_raw_spider:start_urls"
+    name = "weibo_search_timeline_spider"
+    redis_key = "weibo_search_timeline_spider:start_urls"
     all_page_num = 0
     current_page = 0
     weibo_baseurl = "https://weibo.cn"
@@ -77,6 +77,6 @@ class WeiboSpider(RedisSpider):
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())
-    process.crawl('weibo_search_raw_spider')
+    process.crawl('weibo_search_timeline_spider')
     process.start()
     print("[INFO] Parser Started")

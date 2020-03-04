@@ -10,7 +10,6 @@ class InformationItem(Item):
 
 
 class TweetPageItem(Item):
-    """ 用户关系，只保留与关注的关系 """
     _id = Field()  # System Object ID
     crawl_time_utc = Field()
     page_url = Field()

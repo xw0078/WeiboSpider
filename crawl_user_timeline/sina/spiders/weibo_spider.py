@@ -15,9 +15,9 @@ import dateutil.parser
 
 
 class WeiboSpider(RedisSpider):
-    name = "weibo_user_raw_spider"
+    name = "weibo_user_timeline_spider"
     
-    redis_key = "weibo_user_raw_spider:start_urls"
+    redis_key = "weibo_user_timeline_spider:start_urls"
     all_page_num = 0
     current_page = 0
     weibo_baseurl = "https://weibo.cn"
@@ -266,6 +266,6 @@ class WeiboSpider(RedisSpider):
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())
-    process.crawl('weibo_user_raw_spider')
+    process.crawl('weibo_user_timeline_spider')
     process.start()
     print("[INFO] Parser Started")

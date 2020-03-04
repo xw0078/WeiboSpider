@@ -10,7 +10,6 @@ class CookieMiddleware(object):
     """
     每次请求都随机从账号池中选择一个账号去访问
     """
-
     def __init__(self):
         client = pymongo.MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
         self.account_collection = client[DB_NAME]['account']
@@ -38,8 +37,9 @@ class RedirectMiddleware(object):
 
     def process_response(self, request, response, spider):
         http_code = response.status
-        if http_code == 302 or http_code == 403:
+        if http_code == 302:
             stop_timestamp = dt.utcnow()
+            spider.logger.error('HTTP Error Code: ' + str(http_code))
             self.account_collection.find_one_and_update(
                 {'_id': request.meta['account']['_id']},
                 {
@@ -49,10 +49,12 @@ class RedirectMiddleware(object):
                     }
                 }
             )
-            spider.logger.error('小号%s被封了', request.meta['account']['_id'])
+            spider.logger.error('HTTP CODE: '+str(http_code))
+            spider.logger.error('Account Cookie Error: %s', request.meta['account']['_id'])
             return request
-        elif http_code == 418:
-            spider.logger.error('ip 被封了!!!请更换ip,或者停止程序...')
+        elif http_code == 403 or http_code == 418:
+            spider.logger.error('HTTP CODE: '+str(http_code))
+            spider.logger.error('Potential IP Ban')
             return request
         else:
             return response

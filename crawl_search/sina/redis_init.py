@@ -11,7 +11,7 @@ import urllib.parse
 r = redis.Redis(host=LOCAL_REDIS_HOST, port=LOCAL_REDIS_PORT)
 
 # delete existing keys
-# for key in r.scan_iter("weibo_search_raw_spider*"):
+# for key in r.scan_iter("weibo_search_timeline_spider*"):
 #     r.delete(key)
 
 # get seeds from the seeds file
@@ -36,6 +36,6 @@ for key in start_search_keys:
             params = {'keyword': key, 'sort':sort, 'filter':ftr}
             search_url = base_url + urllib.parse.urlencode(params)
             #print(search_url)
-            r.lpush('weibo_search_raw_spider:start_urls', search_url)
+            r.lpush('weibo_search_timeline_spider:start_urls', search_url)
 
 print('Redis initialized')

@@ -9,10 +9,10 @@ class MongoDBPipeline(object):
     def __init__(self):
         client = pymongo.MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
         db = client[DB_NAME]
-        self.Information = db["UserInformationRaw"]
-        self.TweetPage = db["UserTimelineRaw"]
-        self.RelationPage = db["RelationPageRaw"]
-        self.Tweet = db["SingleTweetRaw"]
+        self.Information = db["user_profiles_raw"]
+        self.TweetPage = db["user_timelines_raw"]
+        self.RelationPage = db["user_relations"]
+        self.Tweet = db["statuses_raw"]
 
     def process_item(self, item, spider):
         """ 判断item的类型，并作相应的处理，再入数据库 """

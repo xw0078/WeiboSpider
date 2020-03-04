@@ -70,11 +70,12 @@ if __name__ == '__main__':
         print('=' * 10 + username + '=' * 10)
         try:
             cookie_str = WeiboLogin(username, password).run()
+            print('获取cookie成功')
+            print('Cookie:', cookie_str)
         except Exception as e:
             print(e)
             continue
-        print('获取cookie成功')
-        print('Cookie:', cookie_str)
+        
         try:
             collection.insert(
                 {"_id": username, "password": password, "cookie": cookie_str, "status": "success"})
