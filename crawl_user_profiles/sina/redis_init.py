@@ -9,7 +9,7 @@ from sina.settings import LOCAL_REDIS_HOST, LOCAL_REDIS_PORT,PROXY_BASEURL
 
 r = redis.Redis(host=LOCAL_REDIS_HOST, port=LOCAL_REDIS_PORT)
 
-for key in r.scan_iter("weibo_user_timeline_spider*"):
+for key in r.scan_iter("weibo_user_profile_spider*"):
     r.delete(key)
 
 # get seeds from the seeds file
@@ -27,6 +27,7 @@ with open(file_path, 'r') as f:
             start_urls.append(line)
 
 if PROXY_BASEURL:
+    #print("[DEBUG] PROXY_BASEURL: " + PROXY_BASEURL)
     base_url = PROXY_BASEURL
 else:
     base_url = "https://weibo.cn"
@@ -34,11 +35,14 @@ else:
 
 # push urls to redis
 for uid in start_uids:
-    start_url = base_url+("%s/info" % uid)
-    r.lpush('weibo_user_timeline_spider:start_urls', start_url)
+    start_url = base_url+("/%s/info" % uid)
+    print("[DEBUG] URL: " + start_url)
+    r.lpush('weibo_user_profile_spider:start_urls', start_url)
 
 for url in start_urls:
-    url = url.replace("https://weibo.cn",PROXY_BASEURL)
-    r.lpush('weibo_user_timeline_spider:start_urls', url)
+    if PROXY_BASEURL:
+        url = url.replace("https://weibo.cn",PROXY_BASEURL)
+    print("[DEBUG] URL: " + url)
+    r.lpush('weibo_user_profile_spider:start_urls', url)
 
 print('Redis initialized')

@@ -67,9 +67,7 @@ class WeiboSpider(RedisSpider):
             information_item['page_raw'] = selector.extract() # get raw page content
             information_item['crawl_time_utc'] = dt.utcnow()
             yield information_item
-            yield Request(url=self.base_url + '/{}/profile?page=1'.format(information_item['_id']),
-                    callback=self.parse_tweet, meta={'user_id': information_item['_id']},
-                    priority=1)
+
         else:
             tree_node = etree.HTML(response.body)
             infopage_url = tree_node.xpath('//div[@class="u"]//a[contains(text(),"资料")]/@href')[-1]
@@ -136,21 +134,6 @@ class WeiboSpider(RedisSpider):
                     created_at = time_fix(create_time_info.strip())
                     time_stop_flag = self.time_flag_compare(created_at) # time compare to trigger stop flag
 
-                # 检测由没有阅读全文: 
-                # all_content_link = tweet_node.xpath('.//a[text()="全文" and contains(@href,"ckAll=1")]')
-                # if all_content_link:
-                #     all_content_url = self.base_url + all_content_link[0].xpath('./@href')[0]
-                #     yield Request(all_content_url, callback=self.parse_all_content, meta={'user_id': response.meta["user_id"]},
-                #                   priority=1)
-                
-                # 抓取该微博的评论信息
-                # comment_url = self.base_url + '/comment/' + tweet_item['weibo_url'].split('/')[-1] + '?page=1'
-                # yield Request(url=comment_url, callback=self.parse_comment, meta={'weibo_url': tweet_item['weibo_url']},priority=2)
-
-                # Crawl tweet repost
-                # repost_url = self.base_url + '/repost/' + tweet_item['weibo_url'].split('/')[-1] + '?page=1'
-                # yield Request(url=repost_url, callback=self.parse_repost, meta={'weibo_url': tweet_item['weibo_url']},priority=2)
-         
             except Exception as e:
                 self.logger.error(e)
 
@@ -162,107 +145,6 @@ class WeiboSpider(RedisSpider):
             page_url = response.url.replace('page='+str(current_page), 'page={}'.format(next_page))
             yield Request(page_url, self.parse_tweet, dont_filter=True, meta=response.meta,priority=1)
     
-
-    
-
-    def parse_all_content(self, response):
-        # 有阅读全文的情况，获取全文
-        selector = Selector(response)
-        tweet_item = TweetItem()
-        
-        tweet_item['_id'] = self.get_tweet_id(response.url)
-        tweet_item['user_id'] = response.meta["user_id"]
-        tweet_item['page_url'] = response.url
-        tweet_item['page_raw'] = selector.extract() # get raw page content
-        tweet_item['crawl_time_utc'] = dt.utcnow()
-        yield tweet_item
-
-
-    def parse_comment(self,response):
-        # 如果是第1页，一次性获取后面的所有页
-        if response.url.endswith('page=1'):
-            all_page = re.search(r'/>&nbsp;1/(\d+)页</div>', response.text)
-            if all_page:
-                all_page = all_page.group(1)
-                all_page = int(all_page)
-                for page_num in range(2, all_page + 1):
-                    page_url = response.url.replace('page=1', 'page={}'.format(page_num))
-                    yield Request(page_url, self.parse_comment, dont_filter=True, meta=response.meta, priority = 2)
-        
-        selector = Selector(response)
-        commentpage_item = CommentPageItem()
-        commentpage_item['user_id'] = response.meta["user_id"]
-        commentpage_item['page_url'] = response.url
-        commentpage_item['page_raw'] = selector.extract() # get raw page content
-        commentpage_item['crawl_time_utc'] = dt.utcnow()
-        yield commentpage_item
-
-    def parse_repost(self,response):
-        # 如果是第1页，一次性获取后面的所有页
-        if response.url.endswith('page=1'):
-            all_page = re.search(r'/>&nbsp;1/(\d+)页</div>', response.text)
-            if all_page:
-                all_page = all_page.group(1)
-                all_page = int(all_page)
-                for page_num in range(2, all_page + 1):
-                    page_url = response.url.replace('page=1', 'page={}'.format(page_num))
-                    yield Request(page_url, self.parse_repost, dont_filter=True, meta=response.meta, priority = 2)
-        
-        selector = Selector(response)
-        repostpage_item = RepostPageItem()
-        repostpage_item['user_id'] = response.meta["user_id"]
-        repostpage_item['page_url'] = response.url
-        repostpage_item['page_raw'] = selector.extract() # get raw page content
-        repostpage_item['crawl_time_utc'] = dt.utcnow()
-        yield repostpage_item
-
-
-    def parse_follow(self, response):
-        """
-        抓取关注列表
-        """
-        # 如果是第1页，一次性获取后面的所有页
-        if response.url.endswith('page=1'):
-            all_page = re.search(r'/>&nbsp;1/(\d+)页</div>', response.text)
-            if all_page:
-                all_page = all_page.group(1)
-                all_page = int(all_page)
-                for page_num in range(2, all_page + 1):
-                    page_url = response.url.replace('page=1', 'page={}'.format(page_num))
-                    yield Request(page_url, self.parse_follow, dont_filter=True, meta=response.meta, priority = 3)
-
-        selector = Selector(response)
-        relationships_item = RelationPageItem()
-        relationships_item["page_url"] = response.url
-        relationships_item["page_raw"] = selector.extract() # get raw page content
-        relationships_item["user_id"] = response.meta["user_id"]
-        relationships_item["relationship"] = "follow"
-        relationships_item['crawl_time_utc'] = dt.utcnow()
-        yield relationships_item
-
-    def parse_fans(self, response):
-        """
-        抓取粉丝列表
-        """
-        # 如果是第1页，一次性获取后面的所有页
-        if response.url.endswith('page=1'):
-            all_page = re.search(r'/>&nbsp;1/(\d+)页</div>', response.text)
-            if all_page:
-                all_page = all_page.group(1)
-                all_page = int(all_page)
-                for page_num in range(2, all_page + 1):
-                    page_url = response.url.replace('page=1', 'page={}'.format(page_num))
-                    yield Request(page_url, self.parse_fans, dont_filter=True, meta=response.meta,priority = 3)
-
-        selector = Selector(response)
-        relationships_item = RelationPageItem()
-        relationships_item["page_url"] = response.url
-        relationships_item["page_raw"] = selector.extract() # get raw page content
-        relationships_item["user_id"] = response.meta["user_id"]
-        relationships_item["relationship"] = "fan"
-        relationships_item['crawl_time_utc'] = dt.utcnow()
-        yield relationships_item
-
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())
