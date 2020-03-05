@@ -3,7 +3,7 @@
 import redis
 import sys
 import os
-
+import logging
 sys.path.append(os.getcwd())
 from sina.settings import LOCAL_REDIS_HOST, LOCAL_REDIS_PORT,PROXY_BASEURL,LOCAL_MONGO_PORT, LOCAL_MONGO_HOST, DB_NAME
 from pymongo import MongoClient
@@ -42,8 +42,10 @@ seeds = profiles_collection.find(
     {"timelineCrawlJob_current_complete": False}
 )
 
+print(seeds.count(),"profiles found")
 for seed in seeds:
-    start_url = base_url + '/{}?page=1'.format(seed['_id'])
+    start_url = base_url + '/{}?page={}'.format(seed['_id'],seed['timelineCrawlJob_current_page'])
+    print("[DEBUG] start url: "+start_url)
     r.lpush('weibo_user_timeline_spider:start_urls', start_url)
 
 
