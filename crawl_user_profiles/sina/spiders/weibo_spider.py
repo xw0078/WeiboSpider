@@ -50,6 +50,8 @@ class WeiboSpider(RedisSpider):
         else:
             return "NA"
 
+        
+
     # Default Start
     def parse(self, response):
         print("[DEBUG] response: "+response.url)
@@ -63,7 +65,97 @@ class WeiboSpider(RedisSpider):
             profileraw_item['page_url'] = response.url.replace(self.base_url,self.weibo_baseurl)
             profileraw_item['page_raw'] = selector.extract() # get raw page content
             profileraw_item['crawl_time_utc'] = dt.utcnow()
-            self.user_info_parse(profileraw_item)
+            
+            # get parsed profile result
+            profile_item = ProfileItem()
+            profile_item["_id"] = profileraw_item["uid"]
+            profile_item["crawl_time_utc"] = profileraw_item["crawl_time_utc"]
+
+            tree_node = etree.HTML(profileraw_item["page_raw"])
+            basic_info_node = tree_node.xpath('.//div[@class="c"]//text()')
+            basic_info_node = ";".join(basic_info_node)
+            nick_name = re.findall('昵称;?[：:]?(.*?);', basic_info_node)
+            gender = re.findall('性别;?[：:]?(.*?);', basic_info_node)
+            place = re.findall('地区;?[：:]?(.*?);', basic_info_node)
+            briefIntroduction = re.findall('简介;?[：:]?(.*?);', basic_info_node)
+            birthday = re.findall('生日;?[：:]?(.*?);', basic_info_node)
+            sex_orientation = re.findall('性取向;?[：:]?(.*?);', basic_info_node)
+            sentiment = re.findall('感情状况;?[：:]?(.*?);', basic_info_node)
+            vip_level = re.findall('会员等级;?[：:]?(.*?);', basic_info_node)
+            authentication = re.findall('认证;?[：:]?(.*?);', basic_info_node)
+            labels = re.findall('标签;?[：:]?(.*?)更多>>', basic_info_node)
+            optional_id = re.findall("手机版:[^;]*", basic_info_node)[0].split("/")
+
+            if optional_id and optional_id[0]:
+                profile_item["custom_id"] = optional_id[-1]
+            else:
+                profile_item["custom_id"] = ""
+
+            if nick_name:
+                profile_item["nick_name"] = nick_name[0].replace(u"\xa0", "")
+            else:
+                profile_item["nick_name"] = ""
+
+            if gender:
+                profile_item["gender"] = gender[0].replace(u"\xa0", "")
+            else:
+                profile_item["gender"] = ""
+
+            if place:
+                place = place[0].replace(u"\xa0", "").split(" ")
+                profile_item["province"] = place[0]
+                if len(place) > 1:
+                    profile_item["city"] = place[1]
+                else:
+                    profile_item["city"] = ""
+            else:
+                profile_item["province"] = ""
+                profile_item["city"] = ""
+
+            if briefIntroduction:
+                profile_item["brief_introduction"] = briefIntroduction[0].replace(u"\xa0", "")
+            else:
+                profile_item["brief_introduction"] = ""
+
+            if birthday:
+                profile_item['birthday'] = birthday[0]
+            else:
+                profile_item['birthday'] = ""
+
+            if sex_orientation:
+                if sex_orientation[0].replace(u"\xa0", "") == gender[0]:
+                    profile_item["sex_orientation"] = "同性恋"
+                else:
+                    profile_item["sex_orientation"] = "异性恋"
+            else:
+                profile_item["sex_orientation"] = ""
+            
+            if sentiment:
+                profile_item["sentiment"] = sentiment[0].replace(u"\xa0", "")
+            else:
+                profile_item["sentiment"] = ""
+
+            if vip_level:
+                profile_item["vip_level"] = vip_level[0].replace(u"\xa0", "")
+            else:
+                profile_item["vip_level"] = ""
+
+            if authentication:
+                profile_item["authentication"] = authentication[0].replace(u"\xa0", "")
+            else:
+                profile_item["authentication"] = ""
+
+            if labels:
+                profile_item["labels"] = labels[0].replace(u"\xa0", ",").replace(';', '').strip(',')
+            else:
+                profile_item["labels"] = ""
+
+            # set seed tracing fields
+            profile_item["timelineCrawlJob_current_page"] = 1
+            profile_item["timelineCrawlJob_current_complete"] = False
+            profile_item["timelineCrawlJob_run_history"] = []
+
+            yield profile_item
             yield profileraw_item
             
         else:
@@ -75,92 +167,7 @@ class WeiboSpider(RedisSpider):
                     priority=1)
         
 
-    def user_info_parse(self, rawitem):
-        print("TEST RUNNING")
-        profile_item = ProfileItem()
-        profile_item["_id"] = rawitem["uid"]
-        profile_item["crawl_time_utc"] = rawitem["crawl_time_utc"]
-
-        tree_node = etree.HTML(rawitem["page_raw"])
-        basic_info_node = tree_node.xpath('.//div[@class="c"]//text()')
-        basic_info_node = ";".join(basic_info_node)
-        nick_name = re.findall('昵称;?[：:]?(.*?);', basic_info_node)
-        gender = re.findall('性别;?[：:]?(.*?);', basic_info_node)
-        place = re.findall('地区;?[：:]?(.*?);', basic_info_node)
-        briefIntroduction = re.findall('简介;?[：:]?(.*?);', basic_info_node)
-        birthday = re.findall('生日;?[：:]?(.*?);', basic_info_node)
-        sex_orientation = re.findall('性取向;?[：:]?(.*?);', basic_info_node)
-        sentiment = re.findall('感情状况;?[：:]?(.*?);', basic_info_node)
-        vip_level = re.findall('会员等级;?[：:]?(.*?);', basic_info_node)
-        authentication = re.findall('认证;?[：:]?(.*?);', basic_info_node)
-        labels = re.findall('标签;?[：:]?(.*?)更多>>', basic_info_node)
-        optional_id = re.findall("手机版:[^;]*", basic_info_node)[0].split("/")
-
-        if optional_id and optional_id[0]:
-            profile_item["custom_id"] = optional_id[-1]
-        else:
-            profile_item["custom_id"] = ""
-
-        if nick_name:
-            profile_item["nick_name"] = nick_name[0].replace(u"\xa0", "")
-        else:
-            profile_item["nick_name"] = ""
-
-        if gender:
-            profile_item["gender"] = gender[0].replace(u"\xa0", "")
-        else:
-            profile_item["gender"] = ""
-
-        if place:
-            place = place[0].replace(u"\xa0", "").split(" ")
-            profile_item["province"] = place[0]
-            if len(place) > 1:
-                profile_item["city"] = place[1]
-            else:
-                profile_item["city"] = ""
-        else:
-            profile_item["province"] = ""
-            profile_item["city"] = ""
-
-        if briefIntroduction:
-            profile_item["brief_introduction"] = briefIntroduction[0].replace(u"\xa0", "")
-        else:
-            profile_item["brief_introduction"] = ""
-
-        if birthday:
-            profile_item['birthday'] = birthday[0]
-        else:
-            profile_item['birthday'] = ""
-
-        if sex_orientation:
-            if sex_orientation[0].replace(u"\xa0", "") == gender[0]:
-                profile_item["sex_orientation"] = "同性恋"
-            else:
-                profile_item["sex_orientation"] = "异性恋"
-        else:
-            profile_item["sex_orientation"] = ""
-        
-        if sentiment:
-            profile_item["sentiment"] = sentiment[0].replace(u"\xa0", "")
-        else:
-            profile_item["sentiment"] = ""
-
-        if vip_level:
-            profile_item["vip_level"] = vip_level[0].replace(u"\xa0", "")
-        else:
-            profile_item["vip_level"] = ""
-
-        if authentication:
-            profile_item["authentication"] = authentication[0].replace(u"\xa0", "")
-        else:
-            profile_item["authentication"] = ""
-
-        if labels:
-            profile_item["labels"] = labels[0].replace(u"\xa0", ",").replace(';', '').strip(',')
-        else:
-            profile_item["labels"] = ""
-
-        yield profile_item
+    
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())

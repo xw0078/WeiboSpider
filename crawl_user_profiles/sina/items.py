@@ -4,7 +4,7 @@ from scrapy import Item, Field
 class ProfileItem(Item):
     """ 个人信息 """
     _id = Field()  # 用户ID
-    optional_id = Field() #optional user url id
+    custom_id = Field() #optional user url id
     nick_name = Field()  # 昵称
     gender = Field()  # 性别
     province = Field()  # 所在省
@@ -20,6 +20,9 @@ class ProfileItem(Item):
     authentication = Field()  # 认证
     labels = Field()  # 标签
     crawl_time_utc = Field()  # 抓取时间戳 array
+    timelineCrawlJob_current_page = Field()
+    timelineCrawlJob_current_complete = Field()
+    timelineCrawlJob_run_history = Field()
 
 class ProfileRawItem(Item):
     _id = Field()

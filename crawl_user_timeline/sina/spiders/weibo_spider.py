@@ -7,7 +7,7 @@ from scrapy.selector import Selector
 from scrapy.http import Request
 from scrapy.utils.project import get_project_settings
 from scrapy_redis.spiders import RedisSpider
-from sina.items import InformationItem, TweetPageItem, TweetItem, RelationPageItem
+from sina.items import TimelinePageRaw,ProfileUpdateItem
 from sina.spiders.utils import time_fix, extract_weibo_content, extract_comment_content
 import time
 from datetime import datetime as dt
@@ -51,64 +51,17 @@ class WeiboSpider(RedisSpider):
         else:
             return "NA"
 
-        
 
-
-    # Default Start
     def parse(self, response):
-        selector = Selector(response)
-
-        information_item = InformationItem()
-        uid_from_url = re.findall('(\d+)/info', response.url)
-        if uid_from_url:
-            information_item['_id'] = re.findall('(\d+)/info', response.url)[0] # get user id
-            #print("[DEBUG] response url: "+response.url)      
-            information_item['page_url'] = response.url.replace(self.base_url,self.weibo_baseurl)
-            information_item['page_raw'] = selector.extract() # get raw page content
-            information_item['crawl_time_utc'] = dt.utcnow()
-            yield information_item
-
-        else:
-            tree_node = etree.HTML(response.body)
-            infopage_url = tree_node.xpath('//div[@class="u"]//a[contains(text(),"资料")]/@href')[-1]
-            information_item['_id'] = infopage_url.split("/")[-2]
-            yield Request(url=self.base_url + '/{}/info'.format(information_item['_id']),
-                    callback=self.parse, meta={'user_id': information_item['_id']},
-                    priority=1)
-        
-
-        
-        # 获取关注列表
-        # if information_item['follows_num'] < 500: # if no more than 500 follows
-        #     yield Request(url=self.base_url + '/{}/follow?page=1'.format(information_item['_id']),
-        #                 callback=self.parse_follow,meta={'user_id': information_item['_id']},
-        #                 dont_filter=True,priority=3)
-        # 获取粉丝列表
-        # if information_item['fans_num'] < 500: # if no more than 500 fans
-        #     yield Request(url=self.base_url + '/{}/fans?page=1'.format(information_item['_id']),
-        #                 callback=self.parse_fans,meta={'user_id': information_item['_id']},
-        #                 dont_filter=True,priority=3)
-
-
-
-    def parse_tweet(self, response):
-        if response.url.endswith('page=1'):
-            # if page 1, get all page number
-            all_page = re.search(r'/>&nbsp;1/(\d+)页</div>', response.text)
-            if all_page:
-                all_page = all_page.group(1)
-                all_page = int(all_page)
-                self.all_page_num = all_page
 
         current_page = int(response.url.split("page=")[-1])
         print("[INFO] Crawling Tweets Page: "+str(current_page))
         print("[INFO Crawling URL" + response.url)
-        """
-        解析本页的数据
-        """
+
+
         selector = Selector(response)
-        tweetpage_item = TweetPageItem()
-        tweetpage_item['user_id'] = response.meta["user_id"]
+        tweetpage_item = TimelinePageRaw()
+        tweetpage_item['user_id'] = re.findall("(\d+)\?page",response.url)[0]
         tweetpage_item['page_url'] = response.url.replace(self.base_url,self.weibo_baseurl)
         tweetpage_item['page_raw'] = selector.extract() # get raw page content
         tweetpage_item['crawl_time_utc'] = dt.utcnow()
@@ -118,7 +71,10 @@ class WeiboSpider(RedisSpider):
 
         tree_node = etree.HTML(response.body)
         tweet_nodes = tree_node.xpath('//div[@class="c" and @id]')
-        if len(tweet_nodes) < 1:
+        if len(tweet_nodes) < 1: # no information on this page
+            update = ProfileUpdateItem()
+            update["timelineCrawlJob_current_complete"] = True
+            update["timelineCrawlJob_run_history"] = tweetpage_item['crawl_time_utc']
             return
 
         for tweet_node in tweet_nodes:
@@ -140,11 +96,20 @@ class WeiboSpider(RedisSpider):
         #  keep looping until hit page with time range limit
         
         print("[DEBUG] timeflag:" + str(time_stop_flag))
+        update = ProfileUpdateItem()
         if time_stop_flag == 0: 
             next_page = current_page + 1
             page_url = response.url.replace('page='+str(current_page), 'page={}'.format(next_page))
-            yield Request(page_url, self.parse_tweet, dont_filter=True, meta=response.meta,priority=1)
-    
+            update["timelineCrawlJob_current_page"] = current_page
+            update["timelineCrawlJob_current_complete"] = False
+            update["uid"] = tweetpage_item['user_id']
+            yield update
+            yield Request(page_url, self.parse, dont_filter=True, meta=response.meta,priority=1)
+        else:
+            update["timelineCrawlJob_current_complete"] = True
+            update["timelineCrawlJob_run_history"] = tweetpage_item['crawl_time_utc']
+            update["uid"] = tweetpage_item['user_id']
+            yield update
 
 if __name__ == "__main__":
     process = CrawlerProcess(get_project_settings())
