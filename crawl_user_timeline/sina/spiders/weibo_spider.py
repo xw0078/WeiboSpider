@@ -114,6 +114,7 @@ class WeiboSpider(RedisSpider):
         else:
             update["timelineCrawlJob_current_complete"] = True
             update["timelineCrawlJob_run_history"] = tweetpage_item['crawl_time_utc']
+            update["timelineCrawlJob_current_page"] = current_page
             update["uid"] = tweetpage_item['user_id']
             yield update
 
