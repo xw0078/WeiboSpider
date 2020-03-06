@@ -79,7 +79,9 @@ class WeiboSpider(RedisSpider):
         if len(tweet_nodes) < 1: # no information on this page
             update = ProfileUpdateItem()
             update["timelineCrawlJob_current_complete"] = True
+            update["timelineCrawlJob_current_page"] = current_page
             update["timelineCrawlJob_run_history"] = tweetpage_item['crawl_time_utc']
+            yield update
             return
 
         for tweet_node in tweet_nodes:
