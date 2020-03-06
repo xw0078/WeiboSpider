@@ -11,7 +11,7 @@ from sina.items import ProfileItem,ProfileRawItem
 import time
 from datetime import datetime as dt
 import dateutil.parser
-
+from sina.spiders.utils import get_random_proxy
 
 class WeiboSpider(RedisSpider):
     name = "weibo_user_profile_spider"
@@ -25,10 +25,7 @@ class WeiboSpider(RedisSpider):
         settings=get_project_settings()
         time_start_str = settings.get('TIME_START')
         self.time_start_from = dt.strptime(time_start_str, "%Y-%m-%d %H:%M")
-        if settings.get('PROXY_BASEURL'):
-            self.base_url = settings.get('PROXY_BASEURL')
-        else:
-            self.base_url = "https://weibo.cn"
+        self.use_proxy = settings.get('PROXY_BASEURL')
 
     def time_flag_compare(self, timeString):
         print("[DEBUG] Created Time String: "+timeString)
@@ -50,7 +47,11 @@ class WeiboSpider(RedisSpider):
         else:
             return "NA"
 
-        
+    def get_base_url(self):
+        if self.use_proxy:
+            return get_random_proxy()
+        else:
+            return "https://weibo.cn"
 
     # Default Start
     def parse(self, response):
@@ -162,7 +163,7 @@ class WeiboSpider(RedisSpider):
             tree_node = etree.HTML(response.body)
             infopage_url = tree_node.xpath('//div[@class="u"]//a[contains(text(),"资料")]/@href')[-1]
             profileraw_item['_id'] = infopage_url.split("/")[-2]
-            yield Request(url=self.base_url + '/{}/info'.format(profileraw_item['_id']),
+            yield Request(url=self.get_base_url() + '/{}/info'.format(profileraw_item['_id']),
                     callback=self.parse, meta={'user_id': profileraw_item['_id']},
                     priority=1)
         

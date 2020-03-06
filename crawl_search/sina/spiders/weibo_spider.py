@@ -11,6 +11,8 @@ from sina.items import SearchPageItem
 from sina.spiders.utils import time_fix, extract_weibo_content, extract_comment_content
 import time
 from datetime import datetime as dt
+from sina.spiders.utils import get_random_proxy
+
 
 class WeiboSpider(RedisSpider):
     name = "weibo_search_timeline_spider"
@@ -24,10 +26,7 @@ class WeiboSpider(RedisSpider):
         settings=get_project_settings()
         time_start_str = settings.get('TIME_START')
         self.time_start_from = dt.strptime(time_start_str, "%Y-%m-%d %H:%M")
-        if settings.get('PROXY_BASEURL'):
-            self.base_url = settings.get('PROXY_BASEURL')
-        else:
-            self.base_url = "https://weibo.cn"
+        self.use_proxy = settings.get('PROXY_BASEURL')
 
     def time_flag_compare(self, timeString):
         print("[DEBUG] Created Time String: "+timeString)
@@ -38,20 +37,26 @@ class WeiboSpider(RedisSpider):
         else:
             return 0
 
+    def get_base_url(self):
+        if self.use_proxy:
+            return get_random_proxy()
+        else:
+            return "https://weibo.cn"
+
     # Default Start
     def parse(self, response):
-        current_page = response.url.split("&")[1].split("=")[-1]
+        current_page = response.url.split("&")[-1].split("=")[-1]
         current_page = int(current_page)
         #print("[DEBUG] current_page:" + str(current_page))
         print("[DEBUG] response.url:" + str(response.url))
 
         selector = Selector(response)
         searchpage_item = SearchPageItem()
-        searchpage_item['page_url'] = response.url.replace(self.base_url,self.weibo_baseurl)
+        searchpage_item['page_url'] = re.sub("https://.*?/fireprox",self.weibo_baseurl,response.url)
         searchpage_item['page_raw'] = selector.extract() # get raw page content      
-        searchpage_item['search_key'] = searchpage_item['page_url'].split("&")[2].split("=")[-1]
-        searchpage_item['sort_setting'] = searchpage_item['page_url'].split("&")[3].split("=")[-1]
-        searchpage_item['filter_setting'] = searchpage_item['page_url'].split("&")[4].split("=")[-1]
+        searchpage_item['search_key'] = searchpage_item['page_url'].split("&")[0].split("=")[-1]
+        searchpage_item['sort_setting'] = searchpage_item['page_url'].split("&")[1].split("=")[-1]
+        searchpage_item['filter_setting'] = searchpage_item['page_url'].split("&")[2].split("=")[-1]
         searchpage_item['crawl_time_utc'] = dt.utcnow()
         yield searchpage_item
 
@@ -71,7 +76,8 @@ class WeiboSpider(RedisSpider):
         
         if empty_page_count != 3:
             next_page = current_page + 1
-            page_url = response.url.replace('page='+str(current_page), 'page={}'.format(next_page))
+            page_url = re.sub("https://.*?/fireprox",self.get_base_url(),response.url)
+            page_url = page_url.replace('page='+str(current_page), 'page={}'.format(next_page))
             yield Request(page_url, self.parse, dont_filter=True, meta={'empty_page_count': empty_page_count},priority=1)
         
 

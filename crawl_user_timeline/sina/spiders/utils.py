@@ -3,6 +3,24 @@
 import re
 import datetime
 import dateutil.parser
+from sina.settings import DB_NAME,LOCAL_MONGO_HOST,LOCAL_MONGO_PORT
+import pymongo
+
+def get_random_proxy():
+    myclient = pymongo.MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
+    mydb = myclient[DB_NAME]["proxies"]
+    pipeline = [
+        { "$match": { "status": "success"} },
+        { "$sample": { "size": 1 } }
+    ]
+    results = mydb.aggregate(pipeline)
+    results = list(results)
+    if results:
+        proxy = results[0]["_id"]
+        return proxy
+    else:
+        raise Exception('all proxies are bad')
+
 
 def time_fix(time_string):
     now_time = datetime.datetime.now()
@@ -25,14 +43,6 @@ def time_fix(time_string):
         return time_string
 
     return time_string
-
-
-keyword_re = re.compile('<span class="kt">|</span>|原图|<!-- 是否进行翻译 -->|')
-emoji_re = re.compile('<img alt="|" src="//h5\.sinaimg(.*?)/>')
-white_space_re = re.compile('<br />')
-div_re = re.compile('</div>|<div>')
-image_re = re.compile('<img(.*?)/>')
-url_re = re.compile('<a href=(.*?)>|</a>')
 
 
 def extract_weibo_content(weibo_html):

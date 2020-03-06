@@ -12,7 +12,7 @@ from sina.spiders.utils import time_fix, extract_weibo_content, extract_comment_
 import time
 from datetime import datetime as dt
 import dateutil.parser
-
+from sina.spiders.utils import get_random_proxy
 
 class WeiboSpider(RedisSpider):
     name = "weibo_user_timeline_spider"
@@ -21,15 +21,20 @@ class WeiboSpider(RedisSpider):
     all_page_num = 0
     current_page = 0
     weibo_baseurl = "https://weibo.cn"
+
     def __init__(self, *a, **kw):
         super(WeiboSpider, self).__init__(*a, **kw)
         settings=get_project_settings()
         time_start_str = settings.get('TIME_START')
         self.time_start_from = dt.strptime(time_start_str, "%Y-%m-%d %H:%M")
-        if settings.get('PROXY_BASEURL'):
-            self.base_url = settings.get('PROXY_BASEURL')
+        self.use_proxy = settings.get('PROXY_BASEURL')
+
+
+    def get_base_url(self):
+        if self.use_proxy:
+            return get_random_proxy()
         else:
-            self.base_url = "https://weibo.cn"
+            return "https://weibo.cn"
 
     def time_flag_compare(self, timeString):
         print("[DEBUG] Created Time String: "+timeString)
@@ -56,13 +61,13 @@ class WeiboSpider(RedisSpider):
 
         current_page = int(response.url.split("page=")[-1])
         print("[INFO] Crawling Tweets Page: "+str(current_page))
-        print("[INFO Crawling URL" + response.url)
+        print("[INFO Crawling URL: " + response.url)
 
 
         selector = Selector(response)
         tweetpage_item = TimelinePageRaw()
         tweetpage_item['user_id'] = re.findall("(\d+)\?page",response.url)[0]
-        tweetpage_item['page_url'] = response.url.replace(self.base_url,self.weibo_baseurl)
+        tweetpage_item['page_url'] = re.sub("https://.*?/fireprox",self.weibo_baseurl,response.url)
         tweetpage_item['page_raw'] = selector.extract() # get raw page content
         tweetpage_item['crawl_time_utc'] = dt.utcnow()
         yield tweetpage_item
@@ -99,7 +104,8 @@ class WeiboSpider(RedisSpider):
         update = ProfileUpdateItem()
         if time_stop_flag == 0: 
             next_page = current_page + 1
-            page_url = response.url.replace('page='+str(current_page), 'page={}'.format(next_page))
+            page_url = self.get_base_url() + '/{}?page={}'.format(tweetpage_item['user_id'],next_page)
+            #page_url = response.url.replace('page='+str(current_page), 'page={}'.format(next_page))
             update["timelineCrawlJob_current_page"] = current_page
             update["timelineCrawlJob_current_complete"] = False
             update["uid"] = tweetpage_item['user_id']

@@ -5,8 +5,9 @@ import sys
 import os
 import logging
 sys.path.append(os.getcwd())
-from sina.settings import LOCAL_REDIS_HOST, LOCAL_REDIS_PORT,PROXY_BASEURL,LOCAL_MONGO_PORT, LOCAL_MONGO_HOST, DB_NAME
+from settings import LOCAL_REDIS_HOST, LOCAL_REDIS_PORT,PROXY_BASEURL,LOCAL_MONGO_PORT, LOCAL_MONGO_HOST, DB_NAME
 from pymongo import MongoClient
+from sina.spiders.utils import get_random_proxy
 
 
 
@@ -14,27 +15,6 @@ from pymongo import MongoClient
 r = redis.Redis(host=LOCAL_REDIS_HOST, port=LOCAL_REDIS_PORT)
 for key in r.scan_iter("weibo_user_timeline_spider*"):
     r.delete(key)
-
-# get seeds from the seeds file
-# file_path = os.getcwd() + '/sina/seeds.txt'
-# start_uids = []
-# start_urls = []
-# with open(file_path, 'r') as f:
-#     lines = f.readlines()
-#     for line in lines:
-#         if line[0].isdigit():
-#             line = line.strip()
-#             userid = line.split('#')[0].strip()
-#             start_uids.append(userid)
-#         elif line.startswith("http"):
-#             start_urls.append(line)
-
-if PROXY_BASEURL:
-    base_url = PROXY_BASEURL
-else:
-    base_url = "https://weibo.cn"
-
-# resume from seeds status
 
 client = MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
 profiles_collection = client[DB_NAME]['user_profiles']
@@ -44,6 +24,10 @@ seeds = profiles_collection.find(
 
 print(seeds.count(),"profiles found")
 for seed in seeds:
+    if PROXY_BASEURL:
+        base_url = get_random_proxy()
+    else:
+        base_url = "https://weibo.cn"
     start_url = base_url + '/{}?page={}'.format(seed['_id'],seed['timelineCrawlJob_current_page'])
     print("[DEBUG] start url: "+start_url)
     r.lpush('weibo_user_timeline_spider:start_urls', start_url)
