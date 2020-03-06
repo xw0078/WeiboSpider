@@ -46,7 +46,8 @@ class RedirectMiddleware(object):
                     '$set': {
                         'status': 'error',
                         'fail_time': stop_timestamp
-                    }
+                    },
+                    "$inc": { "num_fail": 1 }
                 }
             )
             spider.logger.error('Account Cookie Error: %s', request.meta['account']['_id'])

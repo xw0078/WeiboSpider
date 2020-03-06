@@ -78,6 +78,6 @@ if __name__ == '__main__':
         
         try:
             collection.insert(
-                {"_id": username, "password": password, "cookie": cookie_str, "status": "success"})
+                {"_id": username, "password": password, "cookie": cookie_str, "status": "success", "num_fail": 0})
         except DuplicateKeyError as e:
             collection.find_one_and_update({'_id': username}, {'$set': {'cookie': cookie_str, "status": "success"}})

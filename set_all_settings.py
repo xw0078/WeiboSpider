@@ -3,7 +3,6 @@
 import shutil
 
 setting_paths = [
-    'utils/settings.py',
     'crawl_user_profiles/sina/settings.py',
     'crawl_user_timeline/sina/settings.py',
     'crawl_content_truncated_statuses/sina/settings.py',
