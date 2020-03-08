@@ -4,29 +4,39 @@
 import redis
 import sys
 import os
-import pymongo
+from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 sys.path.append(os.getcwd())
-from sina.settings import LOCAL_REDIS_HOST, LOCAL_REDIS_PORT, PROXY_BASEURL, DB_NAME
+from settings import LOCAL_REDIS_HOST, LOCAL_REDIS_PORT,PROXY_BASEURL,LOCAL_MONGO_PORT, LOCAL_MONGO_HOST, DB_NAME
 import urllib.parse
-r = redis.Redis(host=LOCAL_REDIS_HOST, port=LOCAL_REDIS_PORT)
+from sina.spiders.utils import get_random_proxy
 
-# delete existing keys
-# for key in r.scan_iter("weibo_search_timeline_spider*"):
-#     r.delete(key)
+
+r = redis.Redis(host=LOCAL_REDIS_HOST, port=LOCAL_REDIS_PORT)
+#delete existing keys
+for key in r.scan_iter("weibo_search_timeline_spider*"):
+    r.delete(key)
 
 # get seeds from mongodb
-myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-mydb = myclient["2020COVID19WEIBO"]
-collection = mydb["Tweets_parsed_v2"]
+client = MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
+collection = client[DB_NAME]['statuses']
 # get status ID for content truncated statuses
 mydoc = collection.find(
-    {"content_truncated": True},
-    {"created_at_utc": 1}
-).limit(1000)
+    {"content_truncated": True}
+).limit(10)
+
+
+
+
 
 for x in mydoc:
-    status_url = PROXY_BASEURL+"/comment/"+x["_id"]+"?ckAll=1"
+    if PROXY_BASEURL:
+        base_url = get_random_proxy()
+    else:
+        base_url = "https://weibo.cn"
+
+    status_url = base_url+"/comment/"+x["_id"]+"?ckAll=1"
+    #print("[DEBUG] url: "+status_url)
     r.lpush('weibo_status_truncated_spider:start_urls', status_url)
 
 print('Redis initialized')

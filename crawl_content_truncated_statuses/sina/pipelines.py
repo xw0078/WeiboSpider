@@ -20,11 +20,27 @@ class MongoDBPipeline(object):
     def insert_item(self, collection, item):
         try:
             collection.insert(dict(item)) # save the copy
-            status_item = get_full_status_content(dict(item)) # get full content
-            update_status(status_item) # update truncated records
+            self.update_trucated_status(dict(item)) # update truncated records
         except DuplicateKeyError:
             print("[ERROR] DuplicateKeyError")
             pass
+
+    def update_trucated_status(self,status_raw):
+        client = pymongo.MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
+        db = client[DB_NAME]
+        collection = db["statuses"]
+        collection.find_one_and_update(
+            {'_id': status_raw["_id"]},
+            {
+                '$set': {
+                    'content_truncated': 2
+                }
+            }
+        )
+
+
+
+
 
     def get_full_status_content(item):
         tree_node = etree.HTML(item["page_raw"])
@@ -66,19 +82,4 @@ class MongoDBPipeline(object):
                 status_item["mention_users"].append(mention_user_pair)
         return status_item
 
-    def update_status(status_item):
-        client = pymongo.MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
-        db = client[DB_NAME]
-        collection = db["statuses"]
-        collection.find_one_and_update(
-            {'_id': status_item["_id"]},
-            {
-                '$set': {
-                    'content': status_item['content'],
-                    'embeded_urls': status_item['embeded_urls'],
-                    'mention_users': status_item['mention_users'],
-                    'hashtags': status_item['hashtags'],
-                    'content_truncated': False
-                }
-            }
-        )
+    

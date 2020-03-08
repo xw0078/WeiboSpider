@@ -33,9 +33,10 @@ class WeiboSpider(RedisSpider):
     def parse(self, response):
         selector = Selector(response)
         statuspage_item = StatusPageItem()
-        statuspage_item['page_url'] = response.url.replace(self.base_url,self.weibo_baseurl)
+        statuspage_item['page_url'] = re.sub("https://.*?/fireprox",self.weibo_baseurl,response.url)
         statuspage_item['_id'] = statuspage_item['page_url'].split("/")[-1].split("?")[0]
         statuspage_item['page_raw'] = selector.extract() # get raw page content
+        statuspage_item['job'] = "content_truncated"
         statuspage_item['crawl_time_utc'] = dt.utcnow()
         yield statuspage_item
 

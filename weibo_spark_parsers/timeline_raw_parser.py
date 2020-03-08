@@ -16,59 +16,59 @@ import dateutil.parser
 from datetime import timezone
 
 
-readSource = "mongodb://127.0.0.1:27017/2020COVID19WEIBO.UserTimelineRaw_v2"
-
-
+readSource = "mongodb://127.0.0.1:27017/2020COVID19WEIBO.user_timelines_raw"
 
 def main_html_parser(iterator):
     client = MongoClient('mongodb://localhost:27017/')
     db = client['2020COVID19WEIBO']
-    collection = db["Tweets_parsed_v2"]
+    collection = db["statuses"]
     
     for element in iterator:
-        tree_node = etree.HTML(element[2]) 
+        tree_node = etree.HTML(element["page_raw"]) 
         tweet_nodes = tree_node.xpath('//div[@class="c" and @id]')
-        for tweet_node in tweet_nodes:
-            #print(element[3])
-            tweet_item = tweet_node_parser(tweet_node,element[1])          
-            try:
-                collection.update_one(
-                        {"_id": tweet_item["_id"]},
-                        {
-                            "$setOnInsert": { # insert item if id not found
-                                "user_id" : tweet_item["user_id"],
-                                "crawl_time_utc" : tweet_item["crawl_time_utc"],
-                                "created_at_utc" : tweet_item["created_at_utc"],
-                                "exact_created_at" : tweet_item["exact_created_at"],
-                                "content" : tweet_item["content"],
-                                "user_id" : tweet_item["user_id"],
-                                "tool" : tweet_item["tool"],
-                                "multi_imgs_page_url" : tweet_item["multi_imgs_page_url"],
-                                "img_truncated" : tweet_item["img_truncated"],
-                                "multi_img_ids" : tweet_item["multi_img_ids"],
-                                "video_url" : tweet_item["video_url"],
-                                "location_url" : tweet_item["location_url"],
-                                "location_name" : tweet_item["location_name"],
-                                "is_repost" : tweet_item["is_repost"],
-                                "origin_status_id" : tweet_item["origin_status_id"],
-                                "origin_user_name" : tweet_item["origin_user_name"],
-                                "origin_user_url" : tweet_item["origin_user_url"],
-                                "content_truncated" : tweet_item["content_truncated"],
-                                "content" : tweet_item["content"],
-                                "embeded_urls" : tweet_item["embeded_urls"],
-                                "mention_users" : tweet_item["mention_users"],
-                                "hashtags" : tweet_item["hashtags"],
-                                "crawl_time_utc" : tweet_item["crawl_time_utc"]
-                            },
-                            "$push": {
-                                "status_history": tweet_item['status_history'],
-                                "origin_status_history": tweet_item['origin_status_history']
-                            }
-                        },
-                        upsert=True
-                    )
-            except DuplicateKeyError:
-                pass
+        if len(tweet_nodes) > 0:
+            for tweet_node in tweet_nodes:
+                #print(element[3])
+                tweet_item = tweet_node_parser(tweet_node,element["crawl_time_utc"])
+                if tweet_item:
+                    try:
+                        collection.update_one(
+                                {"_id": tweet_item["_id"]},
+                                {
+                                    "$setOnInsert": { # insert item if id not found
+                                        "user_id" : tweet_item["user_id"],
+                                        "crawl_time_utc" : tweet_item["crawl_time_utc"],
+                                        "created_at_utc" : tweet_item["created_at_utc"],
+                                        "exact_created_at" : tweet_item["exact_created_at"],
+                                        "content" : tweet_item["content"],
+                                        "user_id" : tweet_item["user_id"],
+                                        "tool" : tweet_item["tool"],
+                                        "multi_imgs_page_url" : tweet_item["multi_imgs_page_url"],
+                                        "img_truncated" : tweet_item["img_truncated"],
+                                        "multi_img_ids" : tweet_item["multi_img_ids"],
+                                        "video_url" : tweet_item["video_url"],
+                                        "location_url" : tweet_item["location_url"],
+                                        "location_name" : tweet_item["location_name"],
+                                        "is_repost" : tweet_item["is_repost"],
+                                        "origin_status_id" : tweet_item["origin_status_id"],
+                                        "origin_user_name" : tweet_item["origin_user_name"],
+                                        "origin_user_url" : tweet_item["origin_user_url"],
+                                        "content_truncated" : tweet_item["content_truncated"],
+                                        "content" : tweet_item["content"],
+                                        "embeded_urls" : tweet_item["embeded_urls"],
+                                        "mention_users" : tweet_item["mention_users"],
+                                        "hashtags" : tweet_item["hashtags"],
+                                        "crawl_time_utc" : tweet_item["crawl_time_utc"]
+                                    },
+                                    "$addToSet": {
+                                        "status_history": tweet_item['status_history'],
+                                        "origin_status_history": tweet_item['origin_status_history']
+                                    }
+                                },
+                                upsert=True
+                            )
+                    except DuplicateKeyError:
+                        pass
             yield "Done"
 
 def get_tweet_id(tweet_url):
@@ -107,12 +107,27 @@ def time_to_utc(timeString):
 def tweet_node_parser(tweet_node,crawl_time_utc):
     tweet_item = {}
     base_url = "https://weibo.cn"
-
+    
     tweet_item['crawl_time_utc'] = crawl_time_utc
     # get tweet id, user id, weibo url
-    tweet_repost_url = tweet_node.xpath('.//a[contains(text(),"转发[")]/@href')[0]
-    user_tweet_id = re.search(r'/repost/(.*?)\?uid=(\d+)', tweet_repost_url)
-    #tweet_item['weibo_url'] = 'https://weibo.com/{}/{}'.format(user_tweet_id.group(2),user_tweet_id.group(1))
+    tweet_info_url = tweet_node.xpath('.//a[contains(text(),"转发[")]/@href')
+    if tweet_info_url:
+        tweet_info_url = tweet_info_url[0]
+        user_tweet_id = re.search(r'/repost/(.*?)\?uid=(\d+)', tweet_info_url)
+    else:
+        tweet_info_url = tweet_node.xpath('.//a[contains(text(),"评论[")]/@href')
+        if tweet_info_url:
+            tweet_info_url = tweet_info_url[0]
+            user_tweet_id = re.search(r'/comment/(.*?)\?uid=(\d+)', tweet_info_url)
+        else:
+            tweet_info_url = tweet_node.xpath('.//a[contains(text(),"赞[")]/@href')
+            if tweet_info_url:
+                tweet_info_url = tweet_info_url[0]
+                user_tweet_id = re.search(r'/((comment)|(repost))/(.*?)\?uid=(\d+)', tweet_info_url)
+            else:
+                print("No link info found for the status")
+                return 0
+    
     tweet_item['user_id'] = user_tweet_id.group(2)
     tweet_item['_id'] = '{}'.format(user_tweet_id.group(1))
     # get created time and tool
@@ -127,17 +142,36 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
         tweet_item['created_at_utc'] = time_to_utc(time_string)
         tweet_item['tool'] = ""
 
-    # get repost and like num
-    like_num = tweet_node.xpath('.//a[contains(text(),"赞[")]/text()')[-1]
-    like_num = int(re.search('\d+', like_num).group()) # dynamic
+    # get repost,commet,like num
+    like_num = tweet_node.xpath('.//a[contains(text(),"赞[")]/text()')
+    if like_num:
+        like_num = int(re.search('\d+', like_num[-1]).group()) # dynamic
+    else:
+        like_num = tweet_node.xpath('.//span[@class="cmt" and contains(text(),"赞[")]/text()')
+        if like_num:
+            like_num = int(re.search('\d+', like_num[-1]).group()) # dynamic
+        else:
+            like_num = -1
 
-    repost_num = tweet_node.xpath('.//a[contains(text(),"转发[")]/text()')[-1]
-    repost_num = int(re.search('\d+', repost_num).group()) # dynamic
+    repost_num = tweet_node.xpath('.//a[contains(text(),"转发[")]/text()')
+    if repost_num:
+        repost_num = int(re.search('\d+', repost_num[-1]).group()) # dynamic
+    else:
+        repost_num = tweet_node.xpath('.//span[@class="cmt" and contains(text(),"转发[")]/text()')
+        if repost_num:
+            repost_num = int(re.search('\d+', repost_num[-1]).group()) # dynamic
+        else:
+            repost_num = -1
 
-    # get comment num
-    comment_num = tweet_node.xpath(
-        './/a[contains(text(),"评论[") and not(contains(text(),"原文"))]/text()')[-1]
-    comment_num  = int(re.search('\d+', comment_num).group()) # dynamic
+    comment_num = tweet_node.xpath('.//a[contains(text(),"评论[") and not(contains(text(),"原文"))]/text()')
+    if comment_num:
+        comment_num = int(re.search('\d+', comment_num[-1]).group()) # dynamic
+    else:
+        comment_num = tweet_node.xpath('.//span[@class="cmt" and contains(text(),"评论[") and not(contains(text(),"原文")]/text()')
+        if comment_num:
+            comment_num = int(re.search('\d+', comment_num[-1]).group()) # dynamic
+        else:
+            comment_num = -1
     
     # get multi img link if exist
     multi_img_link = tweet_node.xpath('.//a[contains(text(),"组图")]/@href')
@@ -228,7 +262,10 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
     # get hashtags
     hashtags = tweet_node.xpath('.//span[@class="ctt"]/a[contains(text(),"#")]/text()')
     if hashtags:
-        tweet_item['hashtags'] = list(map(lambda x: re.findall('(#.*?#)', str(x))[-1],hashtags))
+        #print(hashtags)
+        tweet_item['hashtags'] = list(map(lambda x: re.findall('(#.*?#)', str(x)),hashtags))
+        if hashtags:
+            tweet_item['hashtags'] = hashtags[-1]
     else:
         tweet_item['hashtags'] = ""
 
