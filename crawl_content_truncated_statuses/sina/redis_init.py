@@ -29,7 +29,7 @@ mydoc = collection.find(
 ).limit(BATCH_LIMIT)
 
 
-print("Number of queued url: " + str(mydoc.count()))
+print("Number of queued url: " + str(mydoc.count(True)))
 
 
 for x in mydoc:
