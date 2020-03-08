@@ -38,6 +38,7 @@ class WeiboSpider(RedisSpider):
         statuspage_item['page_raw'] = selector.extract() # get raw page content
         statuspage_item['job'] = "content_truncated"
         statuspage_item['crawl_time_utc'] = dt.utcnow()
+        print("[INFO] crawled url: " + statuspage_item['page_url'])
         yield statuspage_item
 
 if __name__ == "__main__":

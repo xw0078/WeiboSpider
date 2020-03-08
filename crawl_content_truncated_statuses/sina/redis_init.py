@@ -12,6 +12,9 @@ import urllib.parse
 from sina.spiders.utils import get_random_proxy
 
 
+BATCH_LIMIT = 10000
+
+
 r = redis.Redis(host=LOCAL_REDIS_HOST, port=LOCAL_REDIS_PORT)
 #delete existing keys
 for key in r.scan_iter("weibo_search_timeline_spider*"):
@@ -23,10 +26,10 @@ collection = client[DB_NAME]['statuses']
 # get status ID for content truncated statuses
 mydoc = collection.find(
     {"content_truncated": True}
-).limit(10)
+).limit(BATCH_LIMIT)
 
 
-
+print("Number of queued url: " + str(mydoc.count()))
 
 
 for x in mydoc:
