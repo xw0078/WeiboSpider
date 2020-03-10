@@ -33,12 +33,16 @@ class WeiboSpider(RedisSpider):
     def parse(self, response):
         selector = Selector(response)
         statuspage_item = StatusPageItem()
-        statuspage_item['page_url'] = re.sub("https://.*?/fireprox",self.weibo_baseurl,response.request.url)
+        if response.request.meta.get('redirect_urls'):
+            url = response.request.meta['redirect_urls'][0]
+        else:
+            url = response.request.url
+        statuspage_item['page_url'] = re.sub("https://.*?/fireprox",self.weibo_baseurl,url)
         statuspage_item['_id'] = statuspage_item['page_url'].split("/")[-1].split("?")[0]
         statuspage_item['page_raw'] = selector.extract() # get raw page content
         statuspage_item['job'] = "content_truncated"
         statuspage_item['crawl_time_utc'] = dt.utcnow()
-        print("[INFO] crawled url: " + statuspage_item['page_url'])
+        print("[INFO] input url: " + statuspage_item['page_url'])
         yield statuspage_item
 
 if __name__ == "__main__":
