@@ -263,9 +263,12 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
     hashtags = tweet_node.xpath('.//span[@class="ctt"]/a[contains(text(),"#")]/text()')
     if hashtags:
         #print(hashtags)
-        tweet_item['hashtags'] = list(map(lambda x: re.findall('(#.*?#)', str(x)),hashtags))
-        if hashtags:
-            tweet_item['hashtags'] = hashtags[-1]
+        hashtags_list = []
+        for h in hashtags:
+            hashtag = re.findall('(#.*?#)', str(h))
+            if hashtag:
+                hashtags_list.append(hashtag[0])
+        tweet_item['hashtags'] = hashtags_list
     else:
         tweet_item['hashtags'] = ""
 
