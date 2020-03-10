@@ -19,13 +19,17 @@ class MongoDBPipeline(object):
         
     def insert_item(self, collection, item):
         try:
-            collection.insert(dict(item)) # save the copy
-            self.update_trucated_status(dict(item)) # update truncated records
+            status_raw = dict(item)
+            if status_raw["page_url"] == "https://weibo.cn/pub/":
+                self.update_trucated_as_lost(status_raw)
+            else:
+                collection.insert(status_raw) # save the copy
+                self.update_trucated_as_crawled(status_raw) # update truncated records
         except DuplicateKeyError:
             print("[ERROR] DuplicateKeyError")
             pass
 
-    def update_trucated_status(self,status_raw):
+    def update_trucated_as_crawled(self,status_raw):
         client = pymongo.MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
         db = client[DB_NAME]
         collection = db["statuses"]
@@ -34,6 +38,19 @@ class MongoDBPipeline(object):
             {
                 '$set': {
                     'content_truncated': 2
+                }
+            }
+        )
+
+    def update_trucated_as_lost(self,status_raw):
+        client = pymongo.MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
+        db = client[DB_NAME]
+        collection = db["statuses"]
+        collection.find_one_and_update(
+            {'_id': status_raw["_id"]},
+            {
+                '$set': {
+                    'content_truncated': 3
                 }
             }
         )
