@@ -3,7 +3,7 @@ import pymongo
 from pymongo.errors import DuplicateKeyError
 from sina.items import ImageItem,MultiImagePageRawItem
 from sina.settings import LOCAL_MONGO_HOST, LOCAL_MONGO_PORT, DB_NAME
-
+from scrapy.pipelines.images import ImagesPipeline
 
 class MongoDBPipeline(object):
     def __init__(self):
@@ -39,3 +39,10 @@ class MongoDBPipeline(object):
             }
         )
 
+class MyImagesPipeline(ImagesPipeline):
+    
+    def image_key(self, url):
+        #print("TEST: "+url)
+        image_guid = url.split("/")[-1].split(".")[0]
+        return 'full/%s' % (image_guid)
+    
