@@ -43,6 +43,6 @@ class MyImagesPipeline(ImagesPipeline):
     
     def image_key(self, url):
         #print("TEST: "+url)
-        image_guid = url.split("/")[-1].split(".")[0]
+        image_guid = url.split("/")[-1]
         return 'full/%s' % (image_guid)
     
