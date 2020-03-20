@@ -38,7 +38,7 @@ for x in mydoc:
 
         #img_url = x["single_img_url"].replace("https://weibo.cn",base_url)
         img_url = base_url + "/large/"+img_id
-        print("[DEBUG] url: "+img_url)
+        #print("[DEBUG] url: "+img_url)
         r.lpush('weibo_image_spider:start_urls', img_url)
     else:
         if PROXY_BASEURL:
@@ -46,7 +46,7 @@ for x in mydoc:
         else:
             base_url = "https://weibo.cn"
         multi_img_url = x["multi_imgs_page_url"].replace("https://weibo.cn",base_url)
-        print("[DEBUG] url: "+multi_img_url)
+        #print("[DEBUG] url: "+multi_img_url)
         r.lpush('weibo_image_spider:start_urls', multi_img_url)
 
 print('Redis initialized')
