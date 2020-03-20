@@ -6,7 +6,8 @@ setting_paths = [
     'crawl_user_profiles/sina/settings.py',
     'crawl_user_timeline/sina/settings.py',
     'crawl_content_truncated_statuses/sina/settings.py',
-    'crawl_search/sina/settings.py'
+    'crawl_search/sina/settings.py',
+    'crawl_status_images/sina/settings.py'
 ]
 
 for path in setting_paths:

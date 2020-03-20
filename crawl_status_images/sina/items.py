@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 from scrapy import Item, Field
 
-class StatusPageItem(Item):
+class ImageItem(Item):
+    image_urls = Field()
+    images = Field()
+
+class MultiImagePageRawItem(Item):
     _id = Field()
     crawl_time_utc = Field()
     page_url = Field()
     page_raw = Field()
-    job = Field()
+    multi_img_ids = Field()
 
 
     

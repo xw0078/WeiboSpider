@@ -33,6 +33,7 @@ class WeiboSpider(RedisSpider):
     def parse(self, response):
         selector = Selector(response)
         statuspage_item = StatusPageItem()
+        # get input url to ensure id is correct (not redirected url)
         if response.request.meta.get('redirect_urls'):
             url = response.request.meta['redirect_urls'][0]
         else:

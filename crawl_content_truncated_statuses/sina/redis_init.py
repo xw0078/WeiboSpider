@@ -7,7 +7,7 @@ import os
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 sys.path.append(os.getcwd())
-from settings import LOCAL_REDIS_HOST, LOCAL_REDIS_PORT,PROXY_BASEURL,LOCAL_MONGO_PORT, LOCAL_MONGO_HOST, DB_NAME,TRUNCATED_BATCH_SIZE
+from settings import LOCAL_REDIS_HOST, LOCAL_REDIS_PORT,PROXY_BASEURL,LOCAL_MONGO_PORT, LOCAL_MONGO_HOST, DB_NAME,CRAWL_BATCH_SIZE
 from sina.spiders.utils import get_random_proxy
 
 r = redis.Redis(host=LOCAL_REDIS_HOST, port=LOCAL_REDIS_PORT)
@@ -21,7 +21,7 @@ collection = client[DB_NAME]['statuses']
 # get status ID for content truncated statuses
 mydoc = collection.find(
     {"content_truncated": True}
-).limit(TRUNCATED_BATCH_SIZE)
+).limit(CRAWL_BATCH_SIZE)
 
 
 print("Number of queued url: " + str(mydoc.count(True)))

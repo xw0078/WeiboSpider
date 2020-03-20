@@ -6,13 +6,25 @@ import dateutil.parser
 from sina.settings import DB_NAME,LOCAL_MONGO_HOST,LOCAL_MONGO_PORT
 import pymongo
 
-def get_random_proxy():
+def get_random_proxy(proxy_type):
     myclient = pymongo.MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
     mydb = myclient[DB_NAME]["proxies"]
-    pipeline = [
-        { "$match": { "status": "success"} },
-        { "$sample": { "size": 1 } }
-    ]
+    if proxy_type == "https://weibo.cn/":
+        pipeline = [
+            { "$match": { "status": "success" }},
+            { "$match": { "target": "https://weibo.cn/" }},
+            { "$sample": { "size": 1 } }
+        ]
+    elif proxy_type == "http://wx1.sinaimg.cn/":
+        pipeline = [
+            { "$match": { "status": "success" }},
+            { "$match": { "target": "http://wx1.sinaimg.cn/" }},
+            { "$sample": { "size": 1 } }
+        ]
+    else:
+        print("[ERROR] Wrong proxy type")
+        return 
+
     results = mydb.aggregate(pipeline)
     results = list(results)
     if results:

@@ -37,8 +37,10 @@ class RedirectMiddleware(object):
 
     def process_response(self, request, response, spider):
         http_code = response.status
-        if http_code == 302:
+        if http_code == 302 or http_code == 403:
+
             stop_timestamp = dt.utcnow()
+            print('Error Response: '+response.url)
             spider.logger.error('HTTP Error Code: ' + str(http_code))
             self.account_collection.find_one_and_update(
                 {'_id': request.meta['account']['_id']},
@@ -50,10 +52,9 @@ class RedirectMiddleware(object):
                     "$inc": { "num_fail": 1 }
                 }
             )
-            spider.logger.error('HTTP CODE: '+str(http_code))
             spider.logger.error('Account Cookie Error: %s', request.meta['account']['_id'])
             return request
-        elif http_code == 403 or http_code == 418:
+        elif http_code == 418:
             spider.logger.error('HTTP CODE: '+str(http_code))
             spider.logger.error('Potential IP Ban')
             return request

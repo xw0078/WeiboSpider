@@ -46,7 +46,10 @@ def main_html_parser(iterator):
                                         "multi_imgs_page_url" : tweet_item["multi_imgs_page_url"],
                                         "img_truncated" : tweet_item["img_truncated"],
                                         "multi_img_ids" : tweet_item["multi_img_ids"],
+                                        "single_img_url": tweet_item["single_img_url"],
+                                        "img_crawl_status":tweet_item["img_crawl_status"],
                                         "video_url" : tweet_item["video_url"],
+                                        "video_crawl_status":tweet_item["video_crawl_status"],
                                         "location_url" : tweet_item["location_url"],
                                         "location_name" : tweet_item["location_name"],
                                         "is_repost" : tweet_item["is_repost"],
@@ -54,6 +57,7 @@ def main_html_parser(iterator):
                                         "origin_user_name" : tweet_item["origin_user_name"],
                                         "origin_user_url" : tweet_item["origin_user_url"],
                                         "content_truncated" : tweet_item["content_truncated"],
+                                        "content_crawl_status" : tweet_item["content_crawl_status"],
                                         "content" : tweet_item["content"],
                                         "embeded_urls" : tweet_item["embeded_urls"],
                                         "mention_users" : tweet_item["mention_users"],
@@ -177,24 +181,31 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
     multi_img_link = tweet_node.xpath('.//a[contains(text(),"组图")]/@href')
     if multi_img_link:
         tweet_item['multi_imgs_page_url'] = str(multi_img_link[-1])
-        tweet_item['multi_img_ids'] = "TBD"
-        tweet_item['img_truncated'] = False
+        tweet_item['multi_img_ids'] = ""
+        tweet_item['img_truncated'] = True
+        tweet_item['img_crawl_status'] = 0
+        tweet_item['single_img_url'] = ""
     else:
         tweet_item['multi_imgs_page_url'] = ""
         tweet_item['multi_img_ids'] = ""
-        tweet_item['img_truncated'] = True
+        tweet_item['img_truncated'] = False
+        tweet_item['img_crawl_status'] = ""
+        tweet_item['single_img_url'] = ""
 
     # first img link
     first_img = tweet_node.xpath('.//img[@alt="图片"]/@src')
     if first_img:
         tweet_item['multi_img_ids'] = str(first_img[0]).split("/")[-1].split(".")[0]
-
+        tweet_item['single_img_url'] = tweet_node.xpath('.//a[contains(text(),"原图")]/@href')[-1]
+        tweet_item['img_crawl_status'] = 0
     # get video link
     videos = tweet_node.xpath('.//a[contains(@href,"https://m.weibo.cn/s/video/show?object_id=")]/@href')
     if videos:
         tweet_item['video_url'] = str(videos[0])
+        tweet_item['video_crawl_status'] = 0
     else:
         tweet_item['video_url'] = ""
+        tweet_item['video_crawl_status'] = ""
 
     # get map info
     map_node = tweet_node.xpath('.//a[contains(text(),"显示地图")]')
@@ -247,8 +258,10 @@ def tweet_node_parser(tweet_node,crawl_time_utc):
     if all_content_link:
         tweet_item['content_truncated'] = True
         tweet_item['full_tweet_url'] = base_url + all_content_link[0].xpath('./@href')[0]
+        tweet_item['content_crawl_status'] = 0
     else:
         tweet_item['content_truncated'] = False
+        tweet_item['content_crawl_status'] = ""
 
     # get content, replace emoji picture to text if applicated
     
