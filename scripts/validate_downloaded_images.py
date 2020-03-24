@@ -24,7 +24,7 @@ single_image_documents = collection.find(
 for x in single_image_documents:
     img_id = x["multi_img_ids"]
     img_path = image_store+img_id+".jpg"
-    print(img_path)
+    #print(img_path)
     if os.path.exists(img_path):
         collection.update_one(
             {"_id": x["_id"]},
@@ -47,7 +47,7 @@ for x in multi_image_documents:
     flag = 0
     for img_id in img_id_list:
         img_path = image_store+img_id+".jpg"   
-        print(img_path)
+        #print(img_path)
         if os.path.exists(img_path):
             flag = 1
         else:
