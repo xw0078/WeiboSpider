@@ -15,10 +15,10 @@ def get_random_proxy(proxy_type):
             { "$match": { "target": "https://weibo.cn/" }},
             { "$sample": { "size": 1 } }
         ]
-    elif proxy_type == "http://wx1.sinaimg.cn/":
+    elif "sinaimg.cn" in proxy_type:
         pipeline = [
             { "$match": { "status": "success" }},
-            { "$match": { "target": "http://wx1.sinaimg.cn/" }},
+            { "$match": { "target": proxy_type }},
             { "$sample": { "size": 1 } }
         ]
     else:
