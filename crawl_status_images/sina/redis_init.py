@@ -9,6 +9,8 @@ from pymongo.errors import DuplicateKeyError
 sys.path.append(os.getcwd())
 from settings import LOCAL_REDIS_HOST, LOCAL_REDIS_PORT,PROXY_BASEURL,LOCAL_MONGO_PORT, LOCAL_MONGO_HOST, DB_NAME,CRAWL_BATCH_SIZE
 from sina.spiders.utils import get_random_proxy
+import random
+
 
 r = redis.Redis(host=LOCAL_REDIS_HOST, port=LOCAL_REDIS_PORT)
 #delete existing keys
@@ -32,7 +34,8 @@ for x in mydoc:
     if x["img_truncated"]==False:
         img_id = x["multi_img_ids"]
         if PROXY_BASEURL:
-            base_url = get_random_proxy("http://wx1.sinaimg.cn/")
+            image_server_number = random.randint(1,4)
+            base_url = get_random_proxy("http://wx%d.sinaimg.cn/"%image_server_number)
         else:
             base_url = "http://wx1.sinaimg.cn"
 
