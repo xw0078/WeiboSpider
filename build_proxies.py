@@ -16,10 +16,14 @@ file_path = os.getcwd() + '/proxies.txt'
 with open(file_path, 'r') as f:
         lines = f.readlines()
         for line in lines:
-            proxy = line.strip()
+            proxy_pair = line.split(" ")
+            proxy = proxy_pair[0].strip()
+            target = proxy_pair[1].strip()
             try:
+                print(proxy)
+                print(target)
                 collection.insert_one(
-                    {"_id": proxy, "status": "success"})
+                    {"_id": proxy, "target":target,"status": "success"})
             except DuplicateKeyError as e:
                 pass
 
