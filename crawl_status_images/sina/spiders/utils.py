@@ -9,6 +9,7 @@ import pymongo
 def get_random_proxy(proxy_type):
     myclient = pymongo.MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
     mydb = myclient[DB_NAME]["proxies"]
+    print("[INFO] proxy type:"+proxy_type)
     if proxy_type == "https://weibo.cn/":
         pipeline = [
             { "$match": { "status": "success" }},
