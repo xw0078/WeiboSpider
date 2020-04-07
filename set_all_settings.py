@@ -14,3 +14,14 @@ setting_paths = [
 for path in setting_paths:
     newfile = shutil.copy('settings.py', path)
     print("Setting copied: "+newfile)
+
+# add image item to image crawl spider
+
+with open('crawl_status_images/sina/settings.py', "a") as image_crawl_setting:
+    image_crawl_setting.write("""
+    
+ITEM_PIPELINES = {
+'sina.pipelines.MongoDBPipeline': 300,
+'sina.pipelines.MyImagesPipeline': 100
+}
+    """)

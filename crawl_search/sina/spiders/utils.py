@@ -11,11 +11,13 @@ def get_random_proxy():
     mydb = myclient[DB_NAME]["proxies"]
     pipeline = [
         { "$match": { "status": "success"} },
+        { "$match": { "target": "https://weibo.cn/" }},
         { "$sample": { "size": 1 } }
     ]
     results = mydb.aggregate(pipeline)
     results = list(results)
     if results:
+        print("[DEBUG] proxy target:"+results[0]["target"])
         proxy = results[0]["_id"]
         return proxy
     else:
