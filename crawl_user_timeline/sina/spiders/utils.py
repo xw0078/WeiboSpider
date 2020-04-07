@@ -17,6 +17,7 @@ def get_random_proxy():
     results = mydb.aggregate(pipeline)
     results = list(results)
     if results:
+        print("[DEBUG] proxy target:"+results[0]["target"])
         proxy = results[0]["_id"]
         return proxy
     else:
