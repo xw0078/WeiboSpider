@@ -11,6 +11,7 @@ def get_random_proxy():
     mydb = myclient[DB_NAME]["proxies"]
     pipeline = [
         { "$match": { "status": "success"} },
+        { "$match": { "target": "https://weibo.cn/" }},
         { "$sample": { "size": 1 } }
     ]
     results = mydb.aggregate(pipeline)
