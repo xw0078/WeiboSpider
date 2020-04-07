@@ -39,7 +39,9 @@ class RedirectMiddleware(object):
         http_code = response.status
         if http_code == 302 or http_code == 403:
             stop_timestamp = dt.utcnow()
+
             spider.logger.error('HTTP Error Code: ' + str(http_code))
+            spider.logger.error('Failed response: ' + str(response.url))
             self.account_collection.find_one_and_update(
                 {'_id': request.meta['account']['_id']},
                 {
