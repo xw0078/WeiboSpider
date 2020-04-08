@@ -17,11 +17,11 @@ for path in setting_paths:
 
 # add image item to image crawl spider
 
-with open('crawl_status_images/sina/settings.py', "a") as image_crawl_setting:
-    image_crawl_setting.write("""
-    
-ITEM_PIPELINES = {
-'sina.pipelines.MongoDBPipeline': 300,
-'sina.pipelines.MyImagesPipeline': 100
-}
-    """)
+image_settings_file = open('crawl_status_images/sina/settings.py', "r")
+content = image_settings_file.read()
+content = content.replace("'sina.pipelines.MongoDBPipeline': 300,","'sina.pipelines.MongoDBPipeline': 300,\n\t'sina.pipelines.MyImagesPipeline': 100")
+image_settings_file.close()
+
+image_settings_file = open('crawl_status_images/sina/settings.py', "wt")
+image_settings_file.write(content)
+image_settings_file.close()
