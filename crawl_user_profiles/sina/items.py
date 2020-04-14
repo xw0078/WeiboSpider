@@ -23,6 +23,7 @@ class ProfileItem(Item):
     timelineCrawlJob_current_page = Field()
     timelineCrawlJob_current_complete = Field()
     timelineCrawlJob_run_history = Field()
+    group = Field()
 
 class ProfileRawItem(Item):
     _id = Field()
@@ -30,3 +31,4 @@ class ProfileRawItem(Item):
     page_url = Field()
     page_raw = Field()
     crawl_time_utc = Field()
+    group = Field()

@@ -26,6 +26,7 @@ class WeiboSpider(RedisSpider):
         time_start_str = settings.get('TIME_START')
         self.time_start_from = dt.strptime(time_start_str, "%Y-%m-%d %H:%M")
         self.use_proxy = settings.get('PROXY_BASEURL')
+        self.group = settings.get("PROFILE_GROUP")
 
     def time_flag_compare(self, timeString):
         print("[DEBUG] Created Time String: "+timeString)
@@ -66,12 +67,12 @@ class WeiboSpider(RedisSpider):
             profileraw_item['page_url'] = response.url.replace(self.base_url,self.weibo_baseurl)
             profileraw_item['page_raw'] = selector.extract() # get raw page content
             profileraw_item['crawl_time_utc'] = dt.utcnow()
-            
+            profileraw_item["group"] = self.group
             # get parsed profile result
             profile_item = ProfileItem()
             profile_item["_id"] = profileraw_item["uid"]
             profile_item["crawl_time_utc"] = profileraw_item["crawl_time_utc"]
-
+            profile_item["group"] = self.group
             tree_node = etree.HTML(profileraw_item["page_raw"])
             basic_info_node = tree_node.xpath('.//div[@class="c"]//text()')
             basic_info_node = ";".join(basic_info_node)
