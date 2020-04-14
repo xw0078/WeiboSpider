@@ -41,12 +41,6 @@ class WeiboSpider(RedisSpider):
     def tweet_id_check(self,tweet_url):
         f=open("tweet_url_cache.txt", "a+")
     
-    def get_tweet_id(self,tweet_url):
-        
-        if tweet_url.startswith(self.base_url+"/comment/"):
-            return tweet_url.split("/")[-1].split("?")[0]
-        else:
-            return "NA"
 
     def get_base_url(self):
         if self.use_proxy:
@@ -64,7 +58,7 @@ class WeiboSpider(RedisSpider):
         if uid_from_url:
             profileraw_item['uid'] = re.findall('(\d+)/info', response.url)[0] # get user id
             #print("[DEBUG] response url: "+response.url)      
-            profileraw_item['page_url'] = response.url.replace(self.base_url,self.weibo_baseurl)
+            profileraw_item['page_url'] = re.sub("https://.*?/fireprox",self.weibo_baseurl,response.url)
             profileraw_item['page_raw'] = selector.extract() # get raw page content
             profileraw_item['crawl_time_utc'] = dt.utcnow()
             profileraw_item["group"] = self.group
