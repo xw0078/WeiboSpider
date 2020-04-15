@@ -5,7 +5,7 @@ import sys
 import os
 import logging
 sys.path.append(os.getcwd())
-from settings import LOCAL_REDIS_HOST, LOCAL_REDIS_PORT,PROXY_BASEURL,LOCAL_MONGO_PORT, LOCAL_MONGO_HOST, DB_NAME
+from settings import LOCAL_REDIS_HOST, LOCAL_REDIS_PORT,PROXY_BASEURL,LOCAL_MONGO_PORT, LOCAL_MONGO_HOST, DB_NAME, PROFILE_GROUP
 from pymongo import MongoClient
 from sina.spiders.utils import get_random_proxy
 
@@ -19,7 +19,7 @@ for key in r.scan_iter("weibo_user_timeline_spider*"):
 client = MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
 profiles_collection = client[DB_NAME]['user_profiles']
 seeds = profiles_collection.find(
-    {"timelineCrawlJob_current_complete": False}
+    {"timelineCrawlJob_current_complete": False, "group":PROFILE_GROUP}
 )
 
 print(seeds.count(),"profiles found")
