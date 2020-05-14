@@ -1,5 +1,5 @@
 '''
-Validate downloaded images and update twitter status in mongo db
+Validate downloaded images and update tweet status in mongo db
 '''
 
 

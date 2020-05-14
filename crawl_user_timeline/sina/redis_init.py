@@ -18,9 +18,15 @@ for key in r.scan_iter("weibo_user_timeline_spider*"):
 
 client = MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
 profiles_collection = client[DB_NAME]['user_profiles']
-seeds = profiles_collection.find(
-    {"timelineCrawlJob_current_complete": False, "group":PROFILE_GROUP}
-)
+
+if PROFILE_GROUP > 0:
+    seeds = profiles_collection.find(
+        {"timelineCrawlJob_current_complete": False, "group":PROFILE_GROUP}
+    )
+else:
+    seeds = profiles_collection.find(
+        {"timelineCrawlJob_current_complete": False}
+    )
 
 print(seeds.count(),"profiles found")
 for seed in seeds:
