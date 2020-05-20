@@ -12,7 +12,7 @@ from sina.spiders.utils import get_random_proxy
 
 r = redis.Redis(host=LOCAL_REDIS_HOST, port=LOCAL_REDIS_PORT)
 #delete existing keys
-for key in r.scan_iter("weibo_search_timeline_spider*"):
+for key in r.scan_iter("weibo_status_truncated_spider*"):
     r.delete(key)
 
 # get seeds from mongodb
