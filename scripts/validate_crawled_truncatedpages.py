@@ -20,23 +20,21 @@ status_raw_collection = client[DB_NAME]['statuses_raw']
 truncated_status = status_collection.find(
     {"content_crawl_status": 0,"content_truncated": True}
 )
-
 print("Current Uncrawlwed Truncated Status:",truncated_status.count())
 
-for x in truncated_status:
+
+crawled_raw_status = status_raw_collection.find()
+
+for x in crawled_raw_status:
     status_id = x["_id"]
-    crawled_raw_status = status_raw_collection.find(
-        {"_id": status_id}
+    status_collection.update_one(
+        {"_id": x["_id"]},
+        {
+            "$set": {
+                "content_crawl_status": 1,
+            },
+        }
     )
-    if crawled_raw_status.count() > 0:
-        status_collection.update_one(
-            {"_id": x["_id"]},
-            {
-                "$set": {
-                    "content_crawl_status": 1,
-                },
-            }
-        )
 
 truncated_status = status_collection.find(
     {"content_crawl_status": 0,"content_truncated": True}
