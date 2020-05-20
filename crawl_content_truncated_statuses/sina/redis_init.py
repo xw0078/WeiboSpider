@@ -34,6 +34,7 @@ for x in mydoc:
         base_url = "https://weibo.cn"
 
     status_url = base_url+"/comment/"+x["_id"]+"?ckAll=1"
+    print(status_url)
     #print("[DEBUG] url: "+status_url)
     r.lpush('weibo_status_truncated_spider:start_urls', status_url)
 
