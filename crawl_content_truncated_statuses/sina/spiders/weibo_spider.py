@@ -31,6 +31,7 @@ class WeiboSpider(RedisSpider):
 
     # Default Start
     def parse(self, response):
+        print("[INFO] response url: " + response.url)
         selector = Selector(response)
         statuspage_item = StatusPageItem()
         # get input url to ensure id is correct (not redirected url)
