@@ -14,25 +14,28 @@ from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 import dateutil.parser
 from datetime import timezone
+from bson.objectid import ObjectId
 
-
-readSource = "mongodb://127.0.0.1:27017/2020COVID19WEIBO.user_timelines_raw"
+source = "search_timelines_raw"
+readSource = "mongodb://127.0.0.1:27017/2020COVID19WEIBO."+source
 
 def main_html_parser(iterator):
     client = MongoClient('mongodb://localhost:27017/')
     db = client['2020COVID19WEIBO']
     collection = db["statuses"]
-    
-    for element in iterator:
-        tree_node = etree.HTML(element["page_raw"]) 
-        tweet_nodes = tree_node.xpath('//div[@class="c" and @id]')
-        if len(tweet_nodes) > 0:
-            for tweet_node in tweet_nodes:
-                #print(element[3])
-                tweet_item = tweet_node_parser(tweet_node,element["crawl_time_utc"])
-                if tweet_item:
-                    try:
-                        collection.update_one(
+    source_collection = db[source]
+    if iterator:
+        for element in iterator:
+            tree_node = etree.HTML(element["page_raw"]) 
+            tweet_nodes = tree_node.xpath('//div[@class="c" and @id]')
+            parsed = element["parsed"]
+            if len(tweet_nodes) > 0 and not parsed:
+                for tweet_node in tweet_nodes:
+                    #print(element[3])
+                    tweet_item = tweet_node_parser(tweet_node,element["crawl_time_utc"])
+                    if tweet_item:
+                        try:
+                            collection.update_one(
                                 {"_id": tweet_item["_id"]},
                                 {
                                     "$setOnInsert": { # insert item if id not found
@@ -71,8 +74,17 @@ def main_html_parser(iterator):
                                 },
                                 upsert=True
                             )
-                    except DuplicateKeyError:
-                        pass
+                            elment_objid = ObjectId(element["_id"][0])
+                            source_collection.update_one(
+                                {"_id": elment_objid},
+                                {
+                                    "$set": {
+                                        "parsed": True
+                                    }
+                                }
+                            )
+                        except DuplicateKeyError:
+                            pass
             yield "Done"
 
 def get_tweet_id(tweet_url):
@@ -349,7 +361,7 @@ class weiboPySparkMDBParser:
         logging.info("Spark Session Created")
 
 
-    def findPotentialUser(self):
+    def parse_timeline_search_raw(self):
         df = self.spark.read.format("com.mongodb.spark.sql.DefaultSource").option("uri",readSource).load()
         df.show(2)
         rdd = df.rdd
@@ -363,6 +375,6 @@ class weiboPySparkMDBParser:
 
 if __name__ == "__main__":
     parser = weiboPySparkMDBParser()
-    parser.findPotentialUser()
+    parser.parse_timeline_search_raw()
     logging.info("END")
 

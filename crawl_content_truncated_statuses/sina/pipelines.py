@@ -3,7 +3,7 @@ import pymongo
 from pymongo.errors import DuplicateKeyError
 from sina.items import StatusPageItem
 from sina.settings import LOCAL_MONGO_HOST, LOCAL_MONGO_PORT, DB_NAME
-
+from bson.objectid import ObjectId
 
 class MongoDBPipeline(object):
     def __init__(self):
@@ -34,10 +34,10 @@ class MongoDBPipeline(object):
         db = client[DB_NAME]
         collection = db["statuses"]
         collection.find_one_and_update(
-            {'_id': status_raw["_id"]},
+            {'_id': ObjectId(status_raw["_id"])},
             {
                 '$set': {
-                    'content_truncated': 2
+                    'content_crawl_status': 1
                 }
             }
         )
@@ -47,10 +47,10 @@ class MongoDBPipeline(object):
         db = client[DB_NAME]
         collection = db["statuses"]
         collection.find_one_and_update(
-            {'_id': status_raw["_id"]},
+            {'_id': ObjectId(status_raw["_id"])},
             {
                 '$set': {
-                    'content_truncated': 3
+                    'content_crawl_status': 2
                 }
             }
         )

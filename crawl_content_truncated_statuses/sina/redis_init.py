@@ -20,7 +20,7 @@ client = MongoClient(LOCAL_MONGO_HOST, LOCAL_MONGO_PORT)
 collection = client[DB_NAME]['statuses']
 # get status ID for content truncated statuses
 mydoc = collection.find(
-    {"content_truncated": True}
+    {"content_crawl_status": 0}
 ).limit(CRAWL_BATCH_SIZE)
 
 
