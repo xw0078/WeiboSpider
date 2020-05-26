@@ -51,5 +51,5 @@ def account_revive():
         print("No error account found")
 
 scheduler = BlockingScheduler()
-scheduler.add_job(account_revive, 'interval', hours=1)
+scheduler.add_job(account_revive, 'interval', minutes=30)
 scheduler.start()
